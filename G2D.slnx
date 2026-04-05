@@ -1,0 +1,6 @@
+<Solution>
+    <Project
+            Path="G2D.Demo/G2D.Demo.csproj"/>
+    <Project
+            Path="G2D/G2D.csproj"/>
+</Solution>
