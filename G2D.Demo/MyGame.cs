@@ -32,15 +32,16 @@ internal class MyGame : Game
     {
     }
 
-    protected override void Draw(Graphics graphics)
+    protected override void Draw()
     {
-        graphics.ClearColor = Colors.CornflowerBlue;
+        Graphics.SetClearColor(Colors.CornflowerBlue);
 
-        graphics.SetColor(new Color(1, 0.0f, 0.0f));
+        Graphics.SetColor(new Color(1, 0.0f, 0.0f));
+
+        Graphics.DrawRect(new Rect(0, 0, 40, 40), Colors.Black);
 
         var pos = Mouse.GetPosition();
-
-        graphics.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.Gray);
+        Graphics.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.Gray);
     }
 
     protected override void Event(ref KeyboardEvent e)

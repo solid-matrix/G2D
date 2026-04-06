@@ -53,11 +53,11 @@ internal sealed unsafe class VulkanBufferSpan
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, _size);
 
         void* dst = null;
-        Vma.vmaMapMemory(_pool._allocator, _allocation, &dst);
+        Vma.vmaMapMemory(_pool._device.Allocator, _allocation, &dst);
         dst = (void*)((ulong)dst + _offset);
 
         System.Buffer.MemoryCopy(src, dst, size, size);
 
-        Vma.vmaUnmapMemory(_pool._allocator, _allocation);
+        Vma.vmaUnmapMemory(_pool._device.Allocator, _allocation);
     }
 }

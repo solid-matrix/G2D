@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Numerics;
+using System.Text;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -17,17 +18,13 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly VulkanDevice _device;
 
-    internal readonly VmaAllocator _vmaAllocator;
-
     internal readonly VulkanSwapchain _swapchain;
-
-    internal readonly VkCommandPool _commandPool;
 
     internal readonly VkDescriptorPool _descriptorPool;
 
     internal readonly VulkanBufferSpanPool _uniformBufferSpanPool;
 
-    internal readonly CommonGraphicsPipeline _commonGraphicsPipeline;
+    internal readonly GraphicsPipeline _commonGraphicsPipeline;
 
 
     private readonly uint _frameCountInFlight;
@@ -47,11 +44,11 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly VulkanBufferSpanPool[] _indexBufferPools;
 
-    internal readonly VkFence[] _queueSubmitFences;
+    internal readonly VkFence[] _submitFences;
 
-    internal readonly VkSemaphore[] _swapchainAcquireSemaphores;
+    internal readonly VkSemaphore[] _acquireSemaphores;
 
-    internal readonly VkSemaphore[] _swapchainReleaseSemaphores;
+    internal readonly VkSemaphore[] _releaseSemaphores;
 
 
     internal VulkanContext(Window window, string appName, Version appVersion, string engineName, Version engineVersion, bool debugEnabled = false)
@@ -80,27 +77,11 @@ public sealed unsafe class VulkanContext : IDisposable
         // Create Device
         _device = new VulkanDevice(_instance, physicalDevice, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
 
-        // Create VMA Allocator
-        var vmaAllocatorInfo = new VmaAllocatorCreateInfo
-        {
-            vulkanApiVersion = VulkanVersion,
-            instance = _instance.Instance,
-            physicalDevice = _device.PhysicalDevice,
-            device = _device.Device
-        };
-
-        Vma.vmaCreateAllocator(in vmaAllocatorInfo, out _vmaAllocator)
-            .CheckResult("failed to create vma allocator");
-
         // Create Swapchain
         _swapchain = new VulkanSwapchain(_device, _surface, _window);
         if (!_swapchain.IsValid)
             throw new Exception("failed to create swapchain");
         _frameCountInFlight = Math.Min(_swapchain.ImageCount, MaxFrameCountInFlight);
-
-        // Create CommandPool
-        _device.Api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _device.GraphicsFamily, out _commandPool)
-            .CheckResult("vulkan failed to create command pool");
 
         // Create DescriptorPool
         var descriptorPoolSize = new VkDescriptorPoolSize
@@ -118,27 +99,32 @@ public sealed unsafe class VulkanContext : IDisposable
             .CheckResult("failed to create descriptor pool");
 
         // Create Uniform Buffer Span Pool
-        _uniformBufferSpanPool = new VulkanBufferSpanPool(_vmaAllocator, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
+        _uniformBufferSpanPool = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
 
         // Create Common Graphics Pipeline
-        _commonGraphicsPipeline = new CommonGraphicsPipeline(_device, _swapchain.Format);
+        _commonGraphicsPipeline = GraphicsPipeline.Create(
+            _device,
+            _swapchain.Format,
+            Game.InternalResource.GetBytes("Assets/Shaders/default.vert.spv"),
+            Game.InternalResource.GetBytes("Assets/Shaders/default.frag.spv")
+        );
 
         // Create UniformBuffers
         _uniformBuffers = new VulkanBufferSpan[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
-            _uniformBuffers[i] = _uniformBufferSpanPool.Allocate((ulong)sizeof(Common.Uniform));
+            _uniformBuffers[i] = _uniformBufferSpanPool.Allocate((ulong)sizeof(Uniform));
 
         // Create VertexBuffer List
         _vertexBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _vertexBufferPools[i] = new VulkanBufferSpanPool(_vmaAllocator, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        for (var i = 0; i < _frameCountInFlight; i++) _vertexBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
 
         // Create InstanceBuffer List
         _instanceBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _instanceBufferPools[i] = new VulkanBufferSpanPool(_vmaAllocator, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        for (var i = 0; i < _frameCountInFlight; i++) _instanceBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
 
         // Create IndexBuffer List
         _indexBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _indexBufferPools[i] = new VulkanBufferSpanPool(_vmaAllocator, VkBufferUsageFlags.IndexBuffer, VmaMemoryUsage.CpuToGpu);
+        for (var i = 0; i < _frameCountInFlight; i++) _indexBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.IndexBuffer, VmaMemoryUsage.CpuToGpu);
 
 
         // Set DescriptorSets
@@ -147,20 +133,20 @@ public sealed unsafe class VulkanContext : IDisposable
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
-            _device.Api.vkAllocateCommandBuffer(_commandPool, out _commandBuffers[i])
+            _device.Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out _commandBuffers[i])
                 .CheckResult("failed to allocate command buffer");
 
         // Create SyncObjects
-        _queueSubmitFences = new VkFence[_frameCountInFlight];
-        _swapchainAcquireSemaphores = new VkSemaphore[_frameCountInFlight];
-        _swapchainReleaseSemaphores = new VkSemaphore[_frameCountInFlight];
+        _submitFences = new VkFence[_frameCountInFlight];
+        _acquireSemaphores = new VkSemaphore[_frameCountInFlight];
+        _releaseSemaphores = new VkSemaphore[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            _device.Api.vkCreateFence(VkFenceCreateFlags.Signaled, out _queueSubmitFences[i])
+            _device.Api.vkCreateFence(VkFenceCreateFlags.Signaled, out _submitFences[i])
                 .CheckResult("failed to create fence");
-            _device.Api.vkCreateSemaphore(out _swapchainAcquireSemaphores[i])
+            _device.Api.vkCreateSemaphore(out _acquireSemaphores[i])
                 .CheckResult("failed to create semaphore");
-            _device.Api.vkCreateSemaphore(out _swapchainReleaseSemaphores[i])
+            _device.Api.vkCreateSemaphore(out _releaseSemaphores[i])
                 .CheckResult("failed to create semaphore");
         }
     }
@@ -172,6 +158,7 @@ public sealed unsafe class VulkanContext : IDisposable
         _device.WaitIdle();
 
         _swapchain.Dispose();
+
         _commonGraphicsPipeline.Dispose();
 
         for (var i = 0; i < _frameCountInFlight; i++)
@@ -183,81 +170,77 @@ public sealed unsafe class VulkanContext : IDisposable
 
         _uniformBufferSpanPool.Dispose();
         _device.Api.vkDestroyDescriptorPool(_descriptorPool);
-        _device.Api.vkDestroyCommandPool(_commandPool);
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            _device.Api.vkDestroyFence(_queueSubmitFences[i]);
-            _device.Api.vkDestroySemaphore(_swapchainAcquireSemaphores[i]);
-            _device.Api.vkDestroySemaphore(_swapchainReleaseSemaphores[i]);
+            _device.Api.vkDestroyFence(_submitFences[i]);
+            _device.Api.vkDestroySemaphore(_acquireSemaphores[i]);
+            _device.Api.vkDestroySemaphore(_releaseSemaphores[i]);
         }
 
-        Vma.vmaDestroyAllocator(_vmaAllocator);
 
         _device.Dispose();
         Window.DestroySurface(_instance.Instance, _surface);
         _instance.Dispose();
     }
 
-    internal Graphics? StartDrawSession()
+    internal void StartDrawSession(Graphics g)
     {
+        g.Reset();
+
         if (!_swapchain.IsValid)
         {
-            if (_window.GetClientExtent().Area == 0)
-                return null;
-
-            if (!_swapchain.Recreate())
-                return null;
+            if (_window.GetClientExtent().Area == 0) return;
+            if (!_swapchain.Recreate()) return;
         }
 
-        var g = new Graphics(this, _swapchain.Extent)
-        {
-            _commandBuffer = _commandBuffers[_currentFrame],
-            _uniformBuffer = _uniformBuffers[_currentFrame],
-            _descriptorSet = _descriptorSets[_currentFrame],
-            _vertexBufferPool = _vertexBufferPools[_currentFrame],
-            _indexBufferPool = _indexBufferPools[_currentFrame],
-            _instanceBufferPool = _instanceBufferPools[_currentFrame],
-            _submitFence = _queueSubmitFences[_currentFrame],
-            _acquireSemaphore = _swapchainAcquireSemaphores[_currentFrame],
-            _releaseSemaphore = _swapchainReleaseSemaphores[_currentFrame]
-        };
 
-        Api.vkWaitForFences(g._submitFence, VkBool32.True, ulong.MaxValue);
+        Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, ulong.MaxValue);
 
-        var result = _device.Api.vkAcquireNextImageKHR(_swapchain.Swapchain, ulong.MaxValue, g._acquireSemaphore, VkFence.Null, out var imageIndex);
+        var result = _device.Api.vkAcquireNextImageKHR(_swapchain.Swapchain, ulong.MaxValue, _acquireSemaphores[_currentFrame], VkFence.Null, out var imageIndex);
         if (result is VkResult.ErrorOutOfDateKHR)
         {
             _swapchain.Recreate();
-            return null;
+            return;
         }
 
         if (result != VkResult.Success && result != VkResult.SuboptimalKHR) throw new VkException("failed to acquire swap chain image!");
 
-        g._imageIndex = imageIndex;
-        g._image = _swapchain.Images[imageIndex];
-        g._imageView = _swapchain.ImageViews[imageIndex];
+        Api.vkResetFences(_submitFences[_currentFrame]);
+        Api.vkResetCommandBuffer(_commandBuffers[_currentFrame], VkCommandBufferResetFlags.None).CheckResult();
 
-        Api.vkResetFences(g._submitFence);
-        Api.vkResetCommandBuffer(g._commandBuffer, VkCommandBufferResetFlags.None).CheckResult();
+        _vertexBufferPools[_currentFrame].Reset();
+        _instanceBufferPools[_currentFrame].Reset();
+        _indexBufferPools[_currentFrame].Reset();
 
-        g._vertexBufferPool.Reset();
-        g._instanceBufferPool.Reset();
-        g._indexBufferPool.Reset();
 
         VkCommandBufferBeginInfo beginInfo = new()
         {
             flags = VkCommandBufferUsageFlags.OneTimeSubmit
         };
-        Api.vkBeginCommandBuffer(g._commandBuffer, &beginInfo)
+        Api.vkBeginCommandBuffer(_commandBuffers[_currentFrame], &beginInfo)
             .CheckResult("failed to create command buffer");
 
-        TransitionImageLayout(g._commandBuffer, g._image,
+        TransitionImageLayout(_commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
             Vulkan.VK_IMAGE_LAYOUT_UNDEFINED, Vulkan.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             0, Vulkan.VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
             Vulkan.VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, Vulkan.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-        return g;
+        g._commandBuffer = _commandBuffers[_currentFrame];
+        g._uniformBuffer = _uniformBuffers[_currentFrame];
+        g._descriptorSet = _descriptorSets[_currentFrame];
+        g._vertexBufferPool = _vertexBufferPools[_currentFrame];
+        g._instanceBufferPool = _instanceBufferPools[_currentFrame];
+        g._indexBufferPool = _indexBufferPools[_currentFrame];
+        g._submitFence = _submitFences[_currentFrame];
+        g._acquireSemaphore = _acquireSemaphores[_currentFrame];
+        g._releaseSemaphore = _releaseSemaphores[_currentFrame];
+        g._imageIndex = imageIndex;
+        g._image = _swapchain.Images[imageIndex];
+        g._imageView = _swapchain.ImageViews[imageIndex];
+        g._requireDraw = true;
+        g._extent = _swapchain.Extent;
+        g.Uniform.Resolution = new Vector2(g._extent.width, g._extent.height);
     }
 
     internal void EndDrawSession(Graphics g)
@@ -295,6 +278,7 @@ public sealed unsafe class VulkanContext : IDisposable
         else if (result != VkResult.Success)
             throw new VkException("failed to present swap chain image");
 
+        g._requireDraw = false;
         _currentFrame = (_currentFrame + 1) % _frameCountInFlight;
     }
 

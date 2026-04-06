@@ -5,19 +5,23 @@ namespace G2D;
 
 internal sealed unsafe class VulkanInstance : IDisposable
 {
+    private readonly VkInstance _instance;
+
     private readonly VkInstanceApi _api;
 
     private readonly bool _debugEnabled;
 
+    private readonly VkVersion _apiVersion;
+
     private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
 
-    private readonly VkInstance _instance;
 
     public VulkanInstance(VkUtf8String appName, VkVersion appVersion, VkUtf8String engineName, VkVersion engineVersion, VkVersion apiVersion, VkUtf8String[] requiredLayers, VkUtf8String[] requiredExtensions, bool debugEnabled = false)
     {
         _debugEnabled = debugEnabled;
 
         if (!CheckIsSupported(apiVersion)) throw new VkException("vulkan not supported");
+        _apiVersion = apiVersion;
 
         HashSet<VkUtf8String> availableLayerSet = [..EnumerateInstanceLayerNames()];
         HashSet<VkUtf8String> availableExtensionSet = [..EnumerateInstanceExtensionNames()];
@@ -82,6 +86,8 @@ internal sealed unsafe class VulkanInstance : IDisposable
     public bool DebugEnabled => _debugEnabled;
 
     public VkInstanceApi Api => _api;
+
+    public VkVersion ApiVersion => _apiVersion;
 
     public void Dispose()
     {

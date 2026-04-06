@@ -4,25 +4,35 @@ namespace G2D;
 
 internal sealed unsafe class VulkanDevice : IDisposable
 {
-    private readonly VkDeviceApi _api;
-
-    private readonly uint _computeFamily;
-
-    private readonly VkQueue _computeQueue;
-
-    private readonly VkDevice _device;
-
-    private readonly uint _graphicsFamily;
-
-    private readonly VkQueue _graphicsQueue;
-
     private readonly VulkanInstance _instance;
 
     private readonly VkPhysicalDevice _physicalDevice;
 
+    private readonly VkDevice _device;
+
+    private readonly VkDeviceApi _api;
+
+    private readonly VmaAllocator _vmaAllocator;
+
+
+    private readonly uint _graphicsFamily;
+
     private readonly uint _presentFamily;
 
+    private readonly uint _computeFamily;
+
+
+    private readonly VkQueue _graphicsQueue;
+
     private readonly VkQueue _presentQueue;
+
+    private readonly VkQueue _computeQueue;
+
+
+    private readonly VkCommandPool _graphicsCommandPool;
+
+    private readonly VkCommandPool _computeCommandPool;
+
 
     public VulkanDevice(VulkanInstance instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkUtf8String[] requiredExtensions)
     {
@@ -43,7 +53,6 @@ internal sealed unsafe class VulkanDevice : IDisposable
         var queueCount = 0u;
         var queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[3];
 
-        // TODO 
         foreach (var queueFamily in uniqueQueueFamilies)
             queueCreateInfos[queueCount++] = new VkDeviceQueueCreateInfo
             {
@@ -81,15 +90,35 @@ internal sealed unsafe class VulkanDevice : IDisposable
         _api.vkGetDeviceQueue(_graphicsFamily, 0, out _graphicsQueue);
         _api.vkGetDeviceQueue(_presentFamily, 0, out _presentQueue);
         _api.vkGetDeviceQueue(_computeFamily, 0, out _computeQueue);
-    }
 
-    public VkDeviceApi Api => _api;
+        var vmaAllocatorInfo = new VmaAllocatorCreateInfo
+        {
+            vulkanApiVersion = _instance.ApiVersion,
+            instance = _instance.Instance,
+            physicalDevice = _physicalDevice,
+            device = _device
+        };
+
+        Vma.vmaCreateAllocator(in vmaAllocatorInfo, out _vmaAllocator)
+            .CheckResult("failed to create vma allocator");
+
+        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer | VkCommandPoolCreateFlags.Transient, _graphicsFamily, out _graphicsCommandPool)
+            .CheckResult("vulkan failed to create command pool");
+
+        if (_computeFamily != _graphicsFamily)
+            _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer | VkCommandPoolCreateFlags.Transient, _computeFamily, out _computeCommandPool)
+                .CheckResult("vulkan failed to create command pool");
+    }
 
     public VulkanInstance Instance => _instance;
 
     public VkPhysicalDevice PhysicalDevice => _physicalDevice;
 
     public VkDevice Device => _device;
+
+    public VmaAllocator Allocator => _vmaAllocator;
+
+    public VkDeviceApi Api => _api;
 
     public uint GraphicsFamily => _graphicsFamily;
 
@@ -103,9 +132,18 @@ internal sealed unsafe class VulkanDevice : IDisposable
 
     public VkQueue ComputeQueue => _computeQueue;
 
+    public VkCommandPool GraphicsCommandPool => _graphicsCommandPool;
+
+    public VkCommandPool ComputeCommandPool => _computeCommandPool;
 
     public void Dispose()
     {
+        _api.vkDestroyCommandPool(_graphicsCommandPool);
+        if (_computeFamily != _graphicsFamily)
+            _api.vkDestroyCommandPool(_computeCommandPool);
+
+        Vma.vmaDestroyAllocator(_vmaAllocator);
+
         _api.vkDestroyDevice();
     }
 

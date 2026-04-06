@@ -7,10 +7,13 @@ public sealed unsafe class Graphics
 {
     internal readonly VulkanContext _context;
 
-    internal readonly VkExtent2D _extent;
+    internal readonly VkDeviceApi _api;
 
-    internal Common.Uniform _uniform;
+    internal VkExtent2D _extent;
 
+    private Uniform _uniform;
+
+    // Per Frame Begin
     internal VkCommandBuffer _commandBuffer;
 
     internal VulkanBufferSpan _uniformBuffer;
@@ -28,46 +31,56 @@ public sealed unsafe class Graphics
     internal VkSemaphore _acquireSemaphore;
 
     internal VkSemaphore _releaseSemaphore;
+    // Per Frame End
 
+    // Per Image Begin
     internal uint _imageIndex;
 
     internal VkImage _image;
 
     internal VkImageView _imageView;
+    // Per Image End
 
     internal GraphicsPipeline? _currentPipeline;
 
     internal bool _begunRender;
 
-    public Graphics(VulkanContext context, VkExtent2D extent)
+    internal bool _requireDraw;
+
+    public Color _clearColor = Colors.Transparent;
+
+    public Graphics(VulkanContext context)
     {
         _context = context;
-        _extent = extent;
-
-        _uniform = new Common.Uniform
-        {
-            View = Matrix4x4.Identity,
-            Color = Colors.White,
-            Resolution = new Vector2(_extent.width, _extent.height),
-            MousePosition = Vector2.Zero,
-            Time = 0
-        };
+        _api = _context.Api;
     }
 
-    public Color ClearColor { get; set; } = Colors.Transparent;
-
-    internal ref Common.Uniform UniformData => ref _uniform;
+    internal ref Uniform Uniform => ref _uniform;
 
     public Extent2 Extent => new(_extent.width, _extent.height);
 
-    public void SetViewMatrix(Matrix4x4 matrix)
+    internal void Reset()
     {
-        UniformData.View = matrix;
+        _requireDraw = false;
+        _begunRender = false;
+        _currentPipeline = null;
+        _uniform.View = Matrix4x4.Identity;
+        _uniform.Color = Colors.White;
+    }
+
+    public void SetClearColor(Color color)
+    {
+        _clearColor = color;
+    }
+
+    public void SetViewTransform(Matrix4x4 matrix)
+    {
+        Uniform.View = matrix;
     }
 
     public void SetColor(Color color)
     {
-        UniformData.Color = color;
+        Uniform.Color = color;
     }
 
     internal void EnsureBeginRender()
@@ -79,7 +92,7 @@ public sealed unsafe class Graphics
             imageLayout = VkImageLayout.ColorAttachmentOptimal,
             loadOp = VkAttachmentLoadOp.Clear,
             storeOp = VkAttachmentStoreOp.Store,
-            clearValue = new VkClearValue(ClearColor.R, ClearColor.G, ClearColor.B, ClearColor.A)
+            clearValue = new VkClearValue(_clearColor.R, _clearColor.G, _clearColor.B, _clearColor.A)
         };
 
         VkRenderingInfo renderingInfo = new()
@@ -128,6 +141,8 @@ public sealed unsafe class Graphics
         {
             _context.Api.vkCmdBindPipeline(_commandBuffer, pipeline.BindPoint, pipeline.Pipeline);
 
+            // bind uniform / texture descriptor set
+            _api.vkCmdBindDescriptorSets(_commandBuffer, pipeline.BindPoint, pipeline.PipelineLayout, 0, _descriptorSet);
 
             _currentPipeline = pipeline;
         }
@@ -140,19 +155,17 @@ public sealed unsafe class Graphics
         UpdateUniformBuffer();
         EnsureBeginRender();
         SwitchGraphicsPipeline(pipeline);
+
         // bind vertex buffer
-        _context.Api.vkCmdBindVertexBuffer(_commandBuffer, 0, vertexBuffer.Buffer, vertexBuffer.Offset);
+        _api.vkCmdBindVertexBuffer(_commandBuffer, 0, vertexBuffer.Buffer, vertexBuffer.Offset);
 
         // bind instance buffer
-        _context.Api.vkCmdBindVertexBuffer(_commandBuffer, 1, instanceBuffer.Buffer, instanceBuffer.Offset);
+        _api.vkCmdBindVertexBuffer(_commandBuffer, 1, instanceBuffer.Buffer, instanceBuffer.Offset);
 
         // bind index buffer
-        _context.Api.vkCmdBindIndexBuffer(_commandBuffer, indexBuffer.Buffer, indexBuffer.Offset, VkIndexType.Uint32);
+        _api.vkCmdBindIndexBuffer(_commandBuffer, indexBuffer.Buffer, indexBuffer.Offset, VkIndexType.Uint32);
 
-        // bind uniform / texture descriptor set
-        _context.Api.vkCmdBindDescriptorSets(_commandBuffer, pipeline.BindPoint, pipeline.PipelineLayout, 0, _descriptorSet);
-
-        _context.Api.vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        _api.vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     public void DrawRect(Rect rect, Color color)
@@ -162,14 +175,14 @@ public sealed unsafe class Graphics
 
     public void DrawRect(Rect rect, Color topLeft, Color topRight, Color bottomRight, Color bottomLeft)
     {
-        Common.Vertex[] vertices =
+        Vertex[] vertices =
         [
             new(rect.Left, rect.Top, topLeft),
             new(rect.Right, rect.Top, topRight),
             new(rect.Left, rect.Bottom, bottomLeft),
             new(rect.Right, rect.Bottom, bottomRight)
         ];
-        Common.Instance[] instances =
+        InstanceData[] instances =
         [
             new(Vector2.Zero, 0, Vector2.One, Vector2.Zero, Vector2.Zero, Colors.White)
         ];

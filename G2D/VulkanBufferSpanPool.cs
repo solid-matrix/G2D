@@ -4,7 +4,7 @@ namespace G2D;
 
 internal sealed unsafe class VulkanBufferSpanPool : IDisposable
 {
-    internal readonly VmaAllocator _allocator;
+    internal readonly VulkanDevice _device;
 
     internal readonly VkBufferUsageFlags _bufferUsage;
 
@@ -14,9 +14,9 @@ internal sealed unsafe class VulkanBufferSpanPool : IDisposable
 
     internal readonly List<VmaAllocation> _allocations;
 
-    public VulkanBufferSpanPool(VmaAllocator allocator, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
+    public VulkanBufferSpanPool(VulkanDevice device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
     {
-        _allocator = allocator;
+        _device = device;
         _bufferUsage = bufferUsage;
         _memoryUsage = memoryUsage;
 
@@ -46,7 +46,7 @@ internal sealed unsafe class VulkanBufferSpanPool : IDisposable
         if (_memoryUsage is VmaMemoryUsage.CpuToGpu or VmaMemoryUsage.CpuOnly)
             allocInfo.requiredFlags = VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCoherent;
 
-        Vma.vmaCreateBuffer(_allocator, &bufferInfo, &allocInfo, out var buffer, out var allocation, out _)
+        Vma.vmaCreateBuffer(_device.Allocator, &bufferInfo, &allocInfo, out var buffer, out var allocation, out _)
             .CheckResult("failed to create buffer");
 
         _buffers.Add(buffer);
@@ -83,7 +83,7 @@ internal sealed unsafe class VulkanBufferSpanPool : IDisposable
 
     public void Reset()
     {
-        for (var i = 0; i < _buffers.Count; i++) Vma.vmaDestroyBuffer(_allocator, _buffers[i], _allocations[i]);
+        for (var i = 0; i < _buffers.Count; i++) Vma.vmaDestroyBuffer(_device.Allocator, _buffers[i], _allocations[i]);
 
         _buffers.Clear();
         _allocations.Clear();

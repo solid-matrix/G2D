@@ -20,6 +20,8 @@ public abstract unsafe class Game
 
     protected Window Window { get; private set; } = null!;
 
+    protected Graphics Graphics { get; private set; } = null!;
+
     internal VulkanContext VulkanContext { get; private set; } = null!;
 
     public void Launch(string[]? args = null)
@@ -58,6 +60,8 @@ public abstract unsafe class Game
             config.ApplicationName, config.ApplicationVersion,
             config.EngineName, config.EngineVersion,
             config.DebugMode);
+
+        Graphics = new Graphics(VulkanContext);
 
         Keyboard = new Keyboard();
         Mouse = new Mouse();
@@ -116,15 +120,16 @@ public abstract unsafe class Game
         // user update
         Update(Timer.GetDeltaTime());
 
-        var g = VulkanContext.StartDrawSession();
-        if (g == null) return;
+        VulkanContext.StartDrawSession(Graphics);
 
-        g.UniformData.Time = Timer.GetTimeF();
-        g.UniformData.MousePosition = Mouse.GetPosition();
+        if (!Graphics._requireDraw) return;
 
-        Draw(g);
+        Graphics.Uniform.Time = Timer.GetTimeF();
+        Graphics.Uniform.MousePosition = Mouse.GetPosition();
 
-        VulkanContext.EndDrawSession(g);
+        Draw();
+
+        VulkanContext.EndDrawSession(Graphics);
     }
 
     internal void InternalEvent(ref SDL_Event e)
@@ -383,7 +388,7 @@ public abstract unsafe class Game
     {
     }
 
-    protected virtual void Draw(Graphics graphics)
+    protected virtual void Draw()
     {
     }
 
