@@ -1,5 +1,5 @@
 #version 320 es
-precision highp float;
+precision mediump float;
 
 // vertex
 layout (location = 0) in vec2 v_pos;

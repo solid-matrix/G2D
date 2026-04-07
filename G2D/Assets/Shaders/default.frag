@@ -1,5 +1,6 @@
 #version 320 es
-precision highp float;
+precision mediump float;
+precision mediump sampler;
 
 // input
 layout (location = 0) in vec2 f_tex_coords;
@@ -16,6 +17,8 @@ layout (set = 0, binding = 0) uniform UniformBlock {
     vec2 u_mouse;
     float u_time;
 };
+
+layout (set = 2, binding =0) uniform sampler[8] u_samplers;
 
 /* CUSTOM-BEGIN */
 vec4 effect(vec4 color, texture2D tex, vec2 tex_coords, vec2 screen_coords) {

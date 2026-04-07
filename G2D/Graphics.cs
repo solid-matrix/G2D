@@ -18,7 +18,7 @@ public sealed unsafe class Graphics
 
     internal VulkanBufferSpan _uniformBuffer;
 
-    internal VkDescriptorSet _descriptorSet;
+    internal VkDescriptorSet _uniformDescriptorSet;
 
     internal VulkanBufferSpanPool _vertexBufferPool;
 
@@ -142,7 +142,7 @@ public sealed unsafe class Graphics
             _context.Api.vkCmdBindPipeline(_commandBuffer, pipeline.BindPoint, pipeline.Pipeline);
 
             // bind uniform / texture descriptor set
-            _api.vkCmdBindDescriptorSets(_commandBuffer, pipeline.BindPoint, pipeline.PipelineLayout, 0, _descriptorSet);
+            _api.vkCmdBindDescriptorSets(_commandBuffer, pipeline.BindPoint, pipeline.PipelineLayout, 0, _uniformDescriptorSet);
 
             _currentPipeline = pipeline;
         }

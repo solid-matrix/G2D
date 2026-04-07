@@ -8,7 +8,9 @@ public sealed unsafe class VulkanContext : IDisposable
 {
     internal const uint MaxFrameCountInFlight = 2;
 
-    private const uint PushConstantRange = 128;
+    internal const uint PushConstantRange = 128;
+
+    private const uint MaxTextureCount = 65536;
 
 
     internal static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
@@ -37,8 +39,11 @@ public sealed unsafe class VulkanContext : IDisposable
 
     private readonly GraphicsPipelineFactory _graphicsPipelineFactory;
 
+    internal readonly SamplerManager _samplerManager;
 
     internal readonly GraphicsPipeline _commonGraphicsPipeline;
+
+    internal readonly VkDescriptorSet _samplerDescriptorSet;
 
 
     private readonly uint _frameCountInFlight;
@@ -50,7 +55,7 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly VulkanBufferSpan[] _uniformBuffers;
 
-    internal readonly VkDescriptorSet[] _descriptorSets;
+    internal readonly VkDescriptorSet[] _uniformDescriptorSets;
 
     internal readonly VulkanBufferSpanPool[] _vertexBufferPools;
 
@@ -142,7 +147,7 @@ public sealed unsafe class VulkanContext : IDisposable
         {
             binding = 0,
             descriptorType = VkDescriptorType.Sampler,
-            descriptorCount = 16,
+            descriptorCount = SamplerManager.SamplerCount,
             stageFlags = VkShaderStageFlags.Fragment
         };
         var samplerDescriptorSetLayoutInfo = new VkDescriptorSetLayoutCreateInfo
@@ -154,21 +159,8 @@ public sealed unsafe class VulkanContext : IDisposable
 
 
         // Pipeline Layout
-        VkDescriptorSetLayout[] setLayouts =
-        [
-            _uniformDescriptorSetLayout,
-            _textureDescriptorSetLayout,
-            _samplerDescriptorSetLayout
-        ];
-        VkPushConstantRange[] pushConstantRanges =
-        [
-            new()
-            {
-                stageFlags = VkShaderStageFlags.Vertex | VkShaderStageFlags.Fragment,
-                offset = 0,
-                size = PushConstantRange
-            }
-        ];
+        VkDescriptorSetLayout[] setLayouts = [_uniformDescriptorSetLayout, _textureDescriptorSetLayout, _samplerDescriptorSetLayout];
+        VkPushConstantRange[] pushConstantRanges = [new() { stageFlags = VkShaderStageFlags.Vertex | VkShaderStageFlags.Fragment, offset = 0, size = PushConstantRange }];
         VkPipelineLayoutCreateInfo pipelineLayoutInfo;
         fixed (VkDescriptorSetLayout* pDescriptorSetLayout = setLayouts)
         fixed (VkPushConstantRange* pPushConstantRanges = pushConstantRanges)
@@ -187,23 +179,24 @@ public sealed unsafe class VulkanContext : IDisposable
 
 
         // Create DescriptorPool
-        var descriptorPoolSize = new VkDescriptorPoolSize
+        VkDescriptorPoolSize[] descriptorPoolSizes =
+        [
+            new() { type = VkDescriptorType.UniformBuffer, descriptorCount = _frameCountInFlight },
+            new() { type = VkDescriptorType.SampledImage, descriptorCount = MaxTextureCount },
+            new() { type = VkDescriptorType.Sampler, descriptorCount = SamplerManager.SamplerCount }
+        ];
+        fixed (VkDescriptorPoolSize* pDescriptorPoolSizes = descriptorPoolSizes)
         {
-            type = VkDescriptorType.UniformBuffer,
-            descriptorCount = _frameCountInFlight
-        };
-        var descriptorPoolInfo = new VkDescriptorPoolCreateInfo
-        {
-            flags = VkDescriptorPoolCreateFlags.UpdateAfterBind,
-            poolSizeCount = 1,
-            pPoolSizes = &descriptorPoolSize,
-            maxSets = _frameCountInFlight
-        };
-        _device.Api.vkCreateDescriptorPool(&descriptorPoolInfo, out _descriptorPool)
-            .CheckResult("failed to create descriptor pool");
-
-        // Create Uniform Buffer Span Pool
-        _uniformBufferSpanPool = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
+            var descriptorPoolInfo = new VkDescriptorPoolCreateInfo
+            {
+                flags = VkDescriptorPoolCreateFlags.UpdateAfterBind,
+                poolSizeCount = (uint)descriptorPoolSizes.Length,
+                pPoolSizes = pDescriptorPoolSizes,
+                maxSets = _frameCountInFlight * 3
+            };
+            _device.Api.vkCreateDescriptorPool(&descriptorPoolInfo, out _descriptorPool)
+                .CheckResult("failed to create descriptor pool");
+        }
 
         // Create Graphics Pipeline Factory
         _graphicsPipelineFactory = new GraphicsPipelineFactory(_device, _pipelineLayout, _swapchain.Format);
@@ -214,10 +207,109 @@ public sealed unsafe class VulkanContext : IDisposable
             Game.InternalResource.GetBytes("Assets/Shaders/default.frag.spv")
         );
 
+        // Create Uniform Buffer Span Pool
+        _uniformBufferSpanPool = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
+
         // Create UniformBuffers
         _uniformBuffers = new VulkanBufferSpan[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
             _uniformBuffers[i] = _uniformBufferSpanPool.Allocate((ulong)sizeof(Uniform));
+
+        // Allocate Uniform Buffer Descriptor Sets
+        var uniformDDescriptorSetLayouts = new VkDescriptorSetLayout[_frameCountInFlight];
+        Array.Fill(uniformDDescriptorSetLayouts, _uniformDescriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo uniformDescriptorSetAllocateInfo;
+        fixed (VkDescriptorSetLayout* pDescriptorSetLayouts = uniformDDescriptorSetLayouts)
+        {
+            uniformDescriptorSetAllocateInfo = new VkDescriptorSetAllocateInfo
+            {
+                descriptorPool = _descriptorPool,
+                descriptorSetCount = _frameCountInFlight,
+                pSetLayouts = pDescriptorSetLayouts
+            };
+        }
+
+        _uniformDescriptorSets = new VkDescriptorSet[_frameCountInFlight];
+        fixed (VkDescriptorSet* pDescriptorSet = _uniformDescriptorSets)
+        {
+            _device.Api.vkAllocateDescriptorSets(&uniformDescriptorSetAllocateInfo, pDescriptorSet)
+                .CheckResult("failed to allocate descriptor sets");
+        }
+
+        // Update Uniform Buffer Descriptor Sets
+        for (var i = 0; i < _frameCountInFlight; i++)
+        {
+            var uniformDescriptorBufferInfo = new VkDescriptorBufferInfo
+            {
+                buffer = _uniformBuffers[i].Buffer,
+                offset = _uniformBuffers[i].Offset,
+                range = _uniformBuffers[i].Size
+            };
+
+            var uniformWriteDescriptorSet = new VkWriteDescriptorSet
+            {
+                dstSet = _uniformDescriptorSets[i],
+                dstBinding = 0,
+                dstArrayElement = 0,
+                descriptorType = VkDescriptorType.UniformBuffer,
+                descriptorCount = 1,
+                pBufferInfo = &uniformDescriptorBufferInfo
+            };
+
+            _device.Api.vkUpdateDescriptorSets(1, &uniformWriteDescriptorSet, 0, null);
+        }
+
+        // Create Sampler Manager
+        _samplerManager = new SamplerManager(_device);
+
+        // Allocate Sampler Descriptor Set
+        VkDescriptorSetAllocateInfo samplerDescriptorSetAllocateInfo;
+        fixed (VkDescriptorSetLayout* pSamplerDescriptorSetLayout = &_samplerDescriptorSetLayout)
+        {
+            samplerDescriptorSetAllocateInfo = new VkDescriptorSetAllocateInfo
+            {
+                descriptorPool = _descriptorPool,
+                descriptorSetCount = 1,
+                pSetLayouts = pSamplerDescriptorSetLayout
+            };
+        }
+
+        fixed (VkDescriptorSet* pDescriptorSet = &_samplerDescriptorSet)
+        {
+            _device.Api.vkAllocateDescriptorSets(&samplerDescriptorSetAllocateInfo, pDescriptorSet);
+        }
+
+        // Update Sampler Descriptor Sets
+        var samplerDescriptorBuffers = new VkDescriptorImageInfo[SamplerManager.SamplerCount];
+
+        for (var i = 0; i < SamplerManager.SamplerCount; i++)
+            samplerDescriptorBuffers[i] = new VkDescriptorImageInfo
+            {
+                sampler = _samplerManager.Samplers[i]
+            };
+
+        VkWriteDescriptorSet samplerWriteDescriptorSet;
+        fixed (VkDescriptorImageInfo* pDescriptorImage = samplerDescriptorBuffers)
+        {
+            samplerWriteDescriptorSet = new VkWriteDescriptorSet
+            {
+                dstSet = _samplerDescriptorSet,
+                dstBinding = 0,
+                dstArrayElement = 0, // offset
+                descriptorType = VkDescriptorType.Sampler,
+                descriptorCount = SamplerManager.SamplerCount,
+                pImageInfo = pDescriptorImage
+            };
+        }
+
+        _device.Api.vkUpdateDescriptorSets(1, &samplerWriteDescriptorSet, 0, null);
+
+
+        // var descriptorWrites = new VkWriteDescriptorSet()
+        // {
+        //
+        // };
 
         // Create VertexBuffer List
         _vertexBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
@@ -230,10 +322,6 @@ public sealed unsafe class VulkanContext : IDisposable
         // Create IndexBuffer List
         _indexBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++) _indexBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.IndexBuffer, VmaMemoryUsage.CpuToGpu);
-
-
-        // Set DescriptorSets
-        _descriptorSets = CreateUniformDescriptorSets(_descriptorPool, _uniformBuffers);
 
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
@@ -272,6 +360,8 @@ public sealed unsafe class VulkanContext : IDisposable
             _instanceBufferPools[i].Dispose();
             _indexBufferPools[i].Dispose();
         }
+
+        _samplerManager.Dispose();
 
         _uniformBufferSpanPool.Dispose();
         _device.Api.vkDestroyDescriptorPool(_descriptorPool);
@@ -339,7 +429,7 @@ public sealed unsafe class VulkanContext : IDisposable
 
         g._commandBuffer = _commandBuffers[_currentFrame];
         g._uniformBuffer = _uniformBuffers[_currentFrame];
-        g._descriptorSet = _descriptorSets[_currentFrame];
+        g._uniformDescriptorSet = _uniformDescriptorSets[_currentFrame];
         g._vertexBufferPool = _vertexBufferPools[_currentFrame];
         g._instanceBufferPool = _instanceBufferPools[_currentFrame];
         g._indexBufferPool = _indexBufferPools[_currentFrame];
@@ -423,56 +513,6 @@ public sealed unsafe class VulkanContext : IDisposable
 
         // Record the pipeline barrier into the command buffer
         _device.Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
-    }
-
-    internal VkDescriptorSet[] CreateUniformDescriptorSets(VkDescriptorPool pool, ReadOnlySpan<VulkanBufferSpan> buffers)
-    {
-        var count = (uint)buffers.Length;
-
-        var descriptorSetLayouts = new VkDescriptorSetLayout[count];
-        Array.Fill(descriptorSetLayouts, _uniformDescriptorSetLayout);
-
-        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo;
-        fixed (VkDescriptorSetLayout* pDescriptorSetLayouts = descriptorSetLayouts)
-        {
-            descriptorSetAllocateInfo = new VkDescriptorSetAllocateInfo
-            {
-                descriptorPool = pool,
-                descriptorSetCount = count,
-                pSetLayouts = pDescriptorSetLayouts
-            };
-        }
-
-        var descriptorSets = new VkDescriptorSet[count];
-        fixed (VkDescriptorSet* pDescriptorSet = descriptorSets)
-        {
-            _device.Api.vkAllocateDescriptorSets(&descriptorSetAllocateInfo, pDescriptorSet)
-                .CheckResult("failed to allocate descriptor sets");
-        }
-
-        for (var i = 0; i < count; i++)
-        {
-            var bufferInfo = new VkDescriptorBufferInfo
-            {
-                buffer = buffers[i].Buffer,
-                offset = buffers[i].Offset,
-                range = buffers[i].Size
-            };
-
-            var descriptorWrites = new VkWriteDescriptorSet
-            {
-                dstSet = descriptorSets[i],
-                dstBinding = 0,
-                dstArrayElement = 0,
-                descriptorType = VkDescriptorType.UniformBuffer,
-                descriptorCount = 1,
-                pBufferInfo = &bufferInfo
-            };
-
-            _device.Api.vkUpdateDescriptorSets(1, &descriptorWrites, 0, null);
-        }
-
-        return descriptorSets;
     }
 
     private static VkPhysicalDevice SelectPhysicalDevice(VulkanInstance instance, VkPhysicalDevice[] physicalDevices, VkSurfaceKHR surface)
