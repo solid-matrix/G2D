@@ -2,19 +2,19 @@
 
 namespace G2D;
 
-internal sealed unsafe class VulkanBufferSpan
+internal sealed unsafe class BufferSpan
 {
-    private readonly VulkanBufferSpanPool _pool;
+    private readonly BufferSpanPool _pool;
 
-    private readonly VkBuffer _buffer;
+    internal readonly VkBuffer _buffer;
 
-    private readonly VmaAllocation _allocation;
+    internal readonly VmaAllocation _allocation;
 
-    private readonly ulong _offset;
+    internal readonly ulong _offset;
 
-    private readonly ulong _size;
+    internal readonly ulong _size;
 
-    internal VulkanBufferSpan(VulkanBufferSpanPool pool, VkBuffer buffer, VmaAllocation allocation, ulong offset, ulong size)
+    internal BufferSpan(BufferSpanPool pool, VkBuffer buffer, VmaAllocation allocation, ulong offset, ulong size)
     {
         _pool = pool;
         _buffer = buffer;
@@ -50,14 +50,6 @@ internal sealed unsafe class VulkanBufferSpan
 
     public void Upload(void* src, ulong size)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(size, _size);
-
-        void* dst = null;
-        Vma.vmaMapMemory(_pool._device.Allocator, _allocation, &dst);
-        dst = (void*)((ulong)dst + _offset);
-
-        System.Buffer.MemoryCopy(src, dst, size, size);
-
-        Vma.vmaUnmapMemory(_pool._device.Allocator, _allocation);
+        _pool.Upload(this, src, size);
     }
 }

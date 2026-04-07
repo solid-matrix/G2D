@@ -10,9 +10,9 @@ internal unsafe class UniformBufferManager : IDisposable
 
     private readonly VkDescriptorSetLayout _descriptorSetLayout;
 
-    private readonly VulkanBufferSpanPool _uniformBufferSpanPool;
+    private readonly BufferSpanPool _uniformBufferSpanPool;
 
-    private readonly VulkanBufferSpan[] _buffers;
+    private readonly BufferSpan[] _buffers;
 
     private readonly VkDescriptorSet[] _descriptorSets;
 
@@ -20,9 +20,9 @@ internal unsafe class UniformBufferManager : IDisposable
     {
         _device = device;
 
-        _uniformBufferSpanPool = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
+        _uniformBufferSpanPool = new BufferSpanPool(_device, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
 
-        _buffers = new VulkanBufferSpan[frameCount];
+        _buffers = new BufferSpan[frameCount];
 
         for (var i = 0; i < frameCount; i++)
             _buffers[i] = _uniformBufferSpanPool.Allocate((ulong)sizeof(Uniform));
@@ -37,7 +37,7 @@ internal unsafe class UniformBufferManager : IDisposable
 
     public VkDescriptorSetLayout DescriptorSetLayout => _descriptorSetLayout;
 
-    public VulkanBufferSpan[] Buffers => _buffers;
+    public BufferSpan[] Buffers => _buffers;
 
     public VkDescriptorSet[] DescriptorSets => _descriptorSets;
 
@@ -94,7 +94,7 @@ internal unsafe class UniformBufferManager : IDisposable
         return descriptorSets;
     }
 
-    private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, VulkanBufferSpan buffer)
+    private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, BufferSpan buffer)
     {
         var uniformDescriptorBufferInfo = new VkDescriptorBufferInfo
         {

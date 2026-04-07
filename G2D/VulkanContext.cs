@@ -45,11 +45,11 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly VkCommandBuffer[] _commandBuffers;
 
-    internal readonly VulkanBufferSpanPool[] _vertexBufferPools;
+    internal readonly BufferSpanPool[] _vertexBufferPools;
 
-    internal readonly VulkanBufferSpanPool[] _instanceBufferPools;
+    internal readonly BufferSpanPool[] _instanceBufferPools;
 
-    internal readonly VulkanBufferSpanPool[] _indexBufferPools;
+    internal readonly BufferSpanPool[] _indexBufferPools;
 
 
     internal readonly VkFence[] _submitFences;
@@ -160,16 +160,16 @@ public sealed unsafe class VulkanContext : IDisposable
         );
 
         // Create Vertex Buffer Pool
-        _vertexBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _vertexBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        _vertexBufferPools = new BufferSpanPool[_frameCountInFlight];
+        for (var i = 0; i < _frameCountInFlight; i++) _vertexBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
 
         // Create Instance Buffer Pool
-        _instanceBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _instanceBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        _instanceBufferPools = new BufferSpanPool[_frameCountInFlight];
+        for (var i = 0; i < _frameCountInFlight; i++) _instanceBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
 
         // Create Index Buffer Pool
-        _indexBufferPools = new VulkanBufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _indexBufferPools[i] = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.IndexBuffer, VmaMemoryUsage.CpuToGpu);
+        _indexBufferPools = new BufferSpanPool[_frameCountInFlight];
+        for (var i = 0; i < _frameCountInFlight; i++) _indexBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.IndexBuffer, VmaMemoryUsage.CpuToGpu);
 
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];

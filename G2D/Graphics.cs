@@ -16,15 +16,15 @@ public sealed unsafe class Graphics
     // Per Frame Begin
     internal VkCommandBuffer _commandBuffer;
 
-    internal VulkanBufferSpan _uniformBuffer;
+    internal BufferSpan _uniformBuffer;
 
     internal VkDescriptorSet _uniformDescriptorSet;
 
-    internal VulkanBufferSpanPool _vertexBufferPool;
+    internal BufferSpanPool _vertexBufferPool;
 
-    internal VulkanBufferSpanPool _instanceBufferPool;
+    internal BufferSpanPool _instanceBufferPool;
 
-    internal VulkanBufferSpanPool _indexBufferPool;
+    internal BufferSpanPool _indexBufferPool;
 
     internal VkFence _submitFence;
 
@@ -149,7 +149,7 @@ public sealed unsafe class Graphics
     }
 
     internal void Draw(GraphicsPipeline pipeline,
-        VulkanBufferSpan vertexBuffer, VulkanBufferSpan instanceBuffer, VulkanBufferSpan indexBuffer,
+        BufferSpan vertexBuffer, BufferSpan instanceBuffer, BufferSpan indexBuffer,
         uint indexCount, uint instanceCount, uint firstIndex = 0, int vertexOffset = 0, uint firstInstance = 0)
     {
         UpdateUniformBuffer();
