@@ -193,6 +193,6 @@ public sealed unsafe class Graphics
         var instanceBufferSpan = _instanceBufferPool.AllocateUpload(instances);
         var indexBufferSpan = _indexBufferPool.AllocateUpload(indices);
 
-        Draw(_context._commonGraphicsPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
+        Draw(_context._defaultGraphicsPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
     }
 }

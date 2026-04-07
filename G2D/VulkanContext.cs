@@ -22,7 +22,13 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly VulkanSwapchain _swapchain;
 
+    private readonly uint _frameCountInFlight;
+
+    private uint _currentFrame;
+
+
     internal readonly VkDescriptorPool _descriptorPool;
+
 
     internal readonly UniformBufferManager _uniformBufferManager;
 
@@ -30,17 +36,13 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly SamplerManager _samplerManager;
 
+
     private readonly VkPipelineLayout _pipelineLayout;
 
     private readonly GraphicsPipelineFactory _graphicsPipelineFactory;
 
 
-    internal readonly GraphicsPipeline _commonGraphicsPipeline;
-
-
-    private readonly uint _frameCountInFlight;
-
-    private uint _currentFrame;
+    internal readonly GraphicsPipeline _defaultGraphicsPipeline;
 
 
     internal readonly VkCommandBuffer[] _commandBuffers;
@@ -154,7 +156,7 @@ public sealed unsafe class VulkanContext : IDisposable
         _graphicsPipelineFactory = new GraphicsPipelineFactory(_device, _pipelineLayout, _swapchain.Format);
 
         // Create Common Graphics Pipeline
-        _commonGraphicsPipeline = _graphicsPipelineFactory.Create(
+        _defaultGraphicsPipeline = _graphicsPipelineFactory.Create(
             Game.InternalResource.GetBytes("Assets/Shaders/default.vert.spv"),
             Game.InternalResource.GetBytes("Assets/Shaders/default.frag.spv")
         );
@@ -200,7 +202,7 @@ public sealed unsafe class VulkanContext : IDisposable
 
         _swapchain.Dispose();
 
-        _commonGraphicsPipeline.Dispose();
+        _defaultGraphicsPipeline.Dispose();
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {

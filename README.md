@@ -22,9 +22,9 @@ A lightweight, ultra-high-performance, cross-platform 2D game engine with Native
 
   Enable texture rendering without updating descriptor sets.
 
-- Optimize `VulkanBufferSpanPool`:
+- ~~Optimize `BufferSpanPool`:~~
 
-  Enable intelligent reuse the VkBuffer for vertices, indices and instance data.  So that oo VkBuffers will be created or destroyed within a frame.
+  ~~Enable intelligent reuse the VkBuffer for vertices, indices and instance data.  So that 0 VkBuffers will be created or destroyed within a frame.~~
 
 - Optimize graphics pipeline:
 
