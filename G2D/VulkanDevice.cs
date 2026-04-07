@@ -61,25 +61,33 @@ internal sealed unsafe class VulkanDevice : IDisposable
                 pQueuePriorities = &priority
             };
 
-        VkPhysicalDeviceVulkan13Features deviceFeatures2 = new()
+        VkPhysicalDeviceFeatures2 features2 = new();
+        VkPhysicalDeviceVulkan12Features vulkan12Features = new()
+        {
+            runtimeDescriptorArray = true,
+            shaderSampledImageArrayNonUniformIndexing = true,
+            descriptorBindingSampledImageUpdateAfterBind = true,
+            descriptorBindingPartiallyBound = true,
+            descriptorBindingVariableDescriptorCount = true
+        };
+        VkPhysicalDeviceVulkan13Features vulkan13Features = new()
         {
             synchronization2 = true,
             dynamicRendering = true
         };
-
-        VkPhysicalDeviceFeatures2 enableDeviceFeatures2 = new();
-        enableDeviceFeatures2.pNext = &deviceFeatures2;
+        features2.pNext = &vulkan12Features;
+        vulkan12Features.pNext = &vulkan13Features;
 
         using var deviceExtensionNames = new VkStringArray(requiredExtensionSet);
 
         VkDeviceCreateInfo deviceCreateInfo = new()
         {
-            pNext = &enableDeviceFeatures2,
             queueCreateInfoCount = queueCount,
             pQueueCreateInfos = queueCreateInfos,
             enabledExtensionCount = deviceExtensionNames.Length,
             ppEnabledExtensionNames = deviceExtensionNames,
-            pEnabledFeatures = null
+            pEnabledFeatures = null,
+            pNext = &features2
         };
 
         instance.Api.vkCreateDevice(_physicalDevice, &deviceCreateInfo, out _device)

@@ -8,6 +8,9 @@ public sealed unsafe class VulkanContext : IDisposable
 {
     internal const uint MaxFrameCountInFlight = 2;
 
+    private const uint PushConstantRange = 128;
+
+
     internal static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
     internal readonly Window _window;
@@ -23,6 +26,17 @@ public sealed unsafe class VulkanContext : IDisposable
     internal readonly VkDescriptorPool _descriptorPool;
 
     internal readonly VulkanBufferSpanPool _uniformBufferSpanPool;
+
+    internal VkDescriptorSetLayout _uniformDescriptorSetLayout;
+
+    internal VkDescriptorSetLayout _textureDescriptorSetLayout;
+
+    internal VkDescriptorSetLayout _samplerDescriptorSetLayout;
+
+    private readonly VkPipelineLayout _pipelineLayout;
+
+    private readonly GraphicsPipelineFactory _graphicsPipelineFactory;
+
 
     internal readonly GraphicsPipeline _commonGraphicsPipeline;
 
@@ -83,6 +97,95 @@ public sealed unsafe class VulkanContext : IDisposable
             throw new Exception("failed to create swapchain");
         _frameCountInFlight = Math.Min(_swapchain.ImageCount, MaxFrameCountInFlight);
 
+        // Uniform Buffer Descriptor Set Layout
+        var uniformDescriptorSetLayoutBinding = new VkDescriptorSetLayoutBinding
+        {
+            binding = 0,
+            descriptorType = VkDescriptorType.UniformBuffer,
+            descriptorCount = 1,
+            stageFlags = VkShaderStageFlags.Vertex | VkShaderStageFlags.Fragment
+        };
+
+        var uniformDescriptorSetLayoutInfo = new VkDescriptorSetLayoutCreateInfo
+        {
+            bindingCount = 1,
+            pBindings = &uniformDescriptorSetLayoutBinding
+        };
+
+        _device.Api.vkCreateDescriptorSetLayout(&uniformDescriptorSetLayoutInfo, out _uniformDescriptorSetLayout);
+
+        // Texture Descriptor Set Layout
+        var textureDescriptorSetLayoutBinding = new VkDescriptorSetLayoutBinding
+        {
+            binding = 0,
+            descriptorType = VkDescriptorType.SampledImage,
+            descriptorCount = 0,
+            stageFlags = VkShaderStageFlags.Fragment
+        };
+        var textureDescriptorBindingFlags = VkDescriptorBindingFlags.PartiallyBound | VkDescriptorBindingFlags.UpdateAfterBind | VkDescriptorBindingFlags.VariableDescriptorCount;
+        var textureDescriptorSetLayoutBindingFlags = new VkDescriptorSetLayoutBindingFlagsCreateInfo
+        {
+            bindingCount = 1,
+            pBindingFlags = &textureDescriptorBindingFlags
+        };
+        var textureDescriptorSetLayoutInfo = new VkDescriptorSetLayoutCreateInfo
+        {
+            flags = VkDescriptorSetLayoutCreateFlags.UpdateAfterBindPool,
+            bindingCount = 1,
+            pBindings = &textureDescriptorSetLayoutBinding,
+            pNext = &textureDescriptorSetLayoutBindingFlags
+        };
+        _device.Api.vkCreateDescriptorSetLayout(&textureDescriptorSetLayoutInfo, out _textureDescriptorSetLayout);
+
+        // Sampler Descriptor Set Layout
+        var samplerDescriptorSetLayoutBinding = new VkDescriptorSetLayoutBinding
+        {
+            binding = 0,
+            descriptorType = VkDescriptorType.Sampler,
+            descriptorCount = 16,
+            stageFlags = VkShaderStageFlags.Fragment
+        };
+        var samplerDescriptorSetLayoutInfo = new VkDescriptorSetLayoutCreateInfo
+        {
+            bindingCount = 1,
+            pBindings = &samplerDescriptorSetLayoutBinding
+        };
+        _device.Api.vkCreateDescriptorSetLayout(&samplerDescriptorSetLayoutInfo, out _samplerDescriptorSetLayout);
+
+
+        // Pipeline Layout
+        VkDescriptorSetLayout[] setLayouts =
+        [
+            _uniformDescriptorSetLayout,
+            _textureDescriptorSetLayout,
+            _samplerDescriptorSetLayout
+        ];
+        VkPushConstantRange[] pushConstantRanges =
+        [
+            new()
+            {
+                stageFlags = VkShaderStageFlags.Vertex | VkShaderStageFlags.Fragment,
+                offset = 0,
+                size = PushConstantRange
+            }
+        ];
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo;
+        fixed (VkDescriptorSetLayout* pDescriptorSetLayout = setLayouts)
+        fixed (VkPushConstantRange* pPushConstantRanges = pushConstantRanges)
+        {
+            pipelineLayoutInfo = new VkPipelineLayoutCreateInfo
+            {
+                setLayoutCount = (uint)setLayouts.Length,
+                pSetLayouts = pDescriptorSetLayout,
+                pushConstantRangeCount = (uint)pushConstantRanges.Length,
+                pPushConstantRanges = pPushConstantRanges
+            };
+        }
+
+        _device.Api.vkCreatePipelineLayout(in pipelineLayoutInfo, out _pipelineLayout)
+            .CheckResult("failed to create pipeline layout");
+
+
         // Create DescriptorPool
         var descriptorPoolSize = new VkDescriptorPoolSize
         {
@@ -91,6 +194,7 @@ public sealed unsafe class VulkanContext : IDisposable
         };
         var descriptorPoolInfo = new VkDescriptorPoolCreateInfo
         {
+            flags = VkDescriptorPoolCreateFlags.UpdateAfterBind,
             poolSizeCount = 1,
             pPoolSizes = &descriptorPoolSize,
             maxSets = _frameCountInFlight
@@ -101,10 +205,11 @@ public sealed unsafe class VulkanContext : IDisposable
         // Create Uniform Buffer Span Pool
         _uniformBufferSpanPool = new VulkanBufferSpanPool(_device, VkBufferUsageFlags.UniformBuffer, VmaMemoryUsage.CpuToGpu);
 
+        // Create Graphics Pipeline Factory
+        _graphicsPipelineFactory = new GraphicsPipelineFactory(_device, _pipelineLayout, _swapchain.Format);
+
         // Create Common Graphics Pipeline
-        _commonGraphicsPipeline = GraphicsPipeline.Create(
-            _device,
-            _swapchain.Format,
+        _commonGraphicsPipeline = _graphicsPipelineFactory.Create(
             Game.InternalResource.GetBytes("Assets/Shaders/default.vert.spv"),
             Game.InternalResource.GetBytes("Assets/Shaders/default.frag.spv")
         );
@@ -128,7 +233,7 @@ public sealed unsafe class VulkanContext : IDisposable
 
 
         // Set DescriptorSets
-        _descriptorSets = _commonGraphicsPipeline.CreateDescriptorSets(_descriptorPool, _uniformBuffers);
+        _descriptorSets = CreateUniformDescriptorSets(_descriptorPool, _uniformBuffers);
 
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
@@ -170,6 +275,12 @@ public sealed unsafe class VulkanContext : IDisposable
 
         _uniformBufferSpanPool.Dispose();
         _device.Api.vkDestroyDescriptorPool(_descriptorPool);
+
+        _device.Api.vkDestroyDescriptorSetLayout(_uniformDescriptorSetLayout);
+        _device.Api.vkDestroyDescriptorSetLayout(_textureDescriptorSetLayout);
+        _device.Api.vkDestroyDescriptorSetLayout(_samplerDescriptorSetLayout);
+
+        _device.Api.vkDestroyPipelineLayout(_pipelineLayout);
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {
@@ -314,6 +425,56 @@ public sealed unsafe class VulkanContext : IDisposable
         _device.Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
     }
 
+    internal VkDescriptorSet[] CreateUniformDescriptorSets(VkDescriptorPool pool, ReadOnlySpan<VulkanBufferSpan> buffers)
+    {
+        var count = (uint)buffers.Length;
+
+        var descriptorSetLayouts = new VkDescriptorSetLayout[count];
+        Array.Fill(descriptorSetLayouts, _uniformDescriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo;
+        fixed (VkDescriptorSetLayout* pDescriptorSetLayouts = descriptorSetLayouts)
+        {
+            descriptorSetAllocateInfo = new VkDescriptorSetAllocateInfo
+            {
+                descriptorPool = pool,
+                descriptorSetCount = count,
+                pSetLayouts = pDescriptorSetLayouts
+            };
+        }
+
+        var descriptorSets = new VkDescriptorSet[count];
+        fixed (VkDescriptorSet* pDescriptorSet = descriptorSets)
+        {
+            _device.Api.vkAllocateDescriptorSets(&descriptorSetAllocateInfo, pDescriptorSet)
+                .CheckResult("failed to allocate descriptor sets");
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            var bufferInfo = new VkDescriptorBufferInfo
+            {
+                buffer = buffers[i].Buffer,
+                offset = buffers[i].Offset,
+                range = buffers[i].Size
+            };
+
+            var descriptorWrites = new VkWriteDescriptorSet
+            {
+                dstSet = descriptorSets[i],
+                dstBinding = 0,
+                dstArrayElement = 0,
+                descriptorType = VkDescriptorType.UniformBuffer,
+                descriptorCount = 1,
+                pBufferInfo = &bufferInfo
+            };
+
+            _device.Api.vkUpdateDescriptorSets(1, &descriptorWrites, 0, null);
+        }
+
+        return descriptorSets;
+    }
+
     private static VkPhysicalDevice SelectPhysicalDevice(VulkanInstance instance, VkPhysicalDevice[] physicalDevices, VkSurfaceKHR surface)
     {
         var max = 0;
@@ -346,18 +507,29 @@ public sealed unsafe class VulkanContext : IDisposable
         var presentModes = instance.GetPhysicalDeviceSurfacePresentModes(device, surface);
         if (presentModes.Length == 0) return -1;
 
-        VkPhysicalDeviceVulkan13Features queryVulkan13Features = new();
-        VkPhysicalDeviceFeatures2 queryDeviceFeatures2 = new() { pNext = &queryVulkan13Features };
+        VkPhysicalDeviceFeatures2 queryDeviceFeatures2 = new();
+        VkPhysicalDeviceVulkan12Features vulkan12Features = new();
+        VkPhysicalDeviceVulkan13Features vulkan13Features = new();
+
+        queryDeviceFeatures2.pNext = &vulkan12Features;
+        vulkan12Features.pNext = &vulkan13Features;
 
         instance.Api.vkGetPhysicalDeviceFeatures2(device, &queryDeviceFeatures2);
 
-        if (!queryVulkan13Features.dynamicRendering) return -1;
-        if (!queryVulkan13Features.synchronization2) return -1;
+        if (!vulkan12Features.descriptorIndexing) return -1;
+        if (!vulkan12Features.runtimeDescriptorArray) return -1;
+        if (!vulkan12Features.shaderSampledImageArrayNonUniformIndexing) return -1;
+        if (!vulkan13Features.dynamicRendering) return -1;
+        if (!vulkan13Features.synchronization2) return -1;
 
         var rank = 0;
-        instance.Api.vkGetPhysicalDeviceProperties(device, out var properties);
+        VkPhysicalDeviceProperties props;
+        VkPhysicalDeviceDescriptorIndexingProperties indexingProps = new();
+        VkPhysicalDeviceProperties2 props2 = new() { pNext = &indexingProps };
+        instance.Api.vkGetPhysicalDeviceProperties(device, &props);
+        instance.Api.vkGetPhysicalDeviceProperties2(device, &props2);
 
-        if (properties.deviceType == VkPhysicalDeviceType.DiscreteGpu) rank += 1000;
+        if (props.deviceType == VkPhysicalDeviceType.DiscreteGpu) rank += 1000;
 
         return rank;
     }
