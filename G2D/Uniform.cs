@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace G2D;
 
 [StructLayout(LayoutKind.Sequential, Pack = 16)]
-internal record struct Uniform
+internal  struct Uniform
 {
     public Matrix4x4 View;
 

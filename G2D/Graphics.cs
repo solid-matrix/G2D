@@ -112,4 +112,32 @@ public unsafe struct Graphics
 
         Draw(DefaultPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
     }
+
+    public void DrawTexture(Texture texture, Vector2 position)
+    {
+        Vertex[] vertices =
+        [
+            new(position, new Vector2(0, 0), Colors.Red),
+            new(position + new Vector2(texture.Width, 0), new Vector2(1, 0), Colors.Green),
+            new(position + new Vector2(0, texture.Height), new Vector2(0, 1), Colors.Blue),
+            new(position + new Vector2(texture.Width, texture.Height), new Vector2(1, 1), Colors.Yellow)
+        ];
+        InstanceData instance = default;
+        instance.Scale = Vector2.One;
+        instance.Color = Colors.White;
+        instance.IsTexture = 1;
+        instance.TextureIndices[0] = (uint)texture.Index;
+
+        InstanceData[] instances =
+        [
+            instance
+        ];
+        uint[] indices = [0, 1, 2, 2, 1, 3];
+
+        var vertexBufferSpan = VertexBufferPool.AllocateUpload(vertices);
+        var instanceBufferSpan = InstanceBufferPool.AllocateUpload(instances);
+        var indexBufferSpan = IndexBufferPool.AllocateUpload(indices);
+
+        Draw(DefaultPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
+    }
 }

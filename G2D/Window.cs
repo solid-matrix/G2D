@@ -93,17 +93,6 @@ public sealed unsafe class Window : IDisposable
         SDL3.SDL_SetWindowPosition(_handle, location.X, location.Y);
     }
 
-    public void SetIcon(byte[] files)
-    {
-        fixed (byte* pb = files)
-        {
-            var stream = SDL3.SDL_IOFromMem((nint)pb, (nuint)files.Length);
-            var surface = SDL3_image.IMG_Load_IO(stream, true);
-            SDL3.SDL_SetWindowIcon(_handle, surface);
-            SDL3.SDL_DestroySurface(surface);
-        }
-    }
-
     public void HideCursor()
     {
         SDL3.SDL_HideCursor();

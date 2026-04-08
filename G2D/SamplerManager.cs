@@ -165,16 +165,16 @@ internal unsafe class SamplerManager : IDisposable
 
     private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, VkSampler[] samplers)
     {
-        var images = new VkDescriptorImageInfo[MaxSamplerCount];
+        var infos = new VkDescriptorImageInfo[MaxSamplerCount];
 
         for (var i = 0; i < MaxSamplerCount; i++)
-            images[i] = new VkDescriptorImageInfo
+            infos[i] = new VkDescriptorImageInfo
             {
                 sampler = samplers[i]
             };
 
         VkWriteDescriptorSet writes;
-        fixed (VkDescriptorImageInfo* pImage = images)
+        fixed (VkDescriptorImageInfo* pImage = infos)
         {
             writes = new VkWriteDescriptorSet
             {

@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using Vortice.Vulkan;
+﻿using Vortice.Vulkan;
 
 namespace G2D;
 
@@ -20,11 +19,11 @@ internal sealed unsafe class VulkanInstance : IDisposable
     {
         _debugEnabled = debugEnabled;
 
-        if (!CheckIsSupported(apiVersion)) throw new VkException("vulkan not supported");
+        if (!VulkanUtilities.CheckIsSupported(apiVersion)) throw new VkException("vulkan not supported");
         _apiVersion = apiVersion;
 
-        HashSet<VkUtf8String> availableLayerSet = [..EnumerateInstanceLayerNames()];
-        HashSet<VkUtf8String> availableExtensionSet = [..EnumerateInstanceExtensionNames()];
+        HashSet<VkUtf8String> availableLayerSet = [..VulkanUtilities.EnumerateInstanceLayerNames()];
+        HashSet<VkUtf8String> availableExtensionSet = [..VulkanUtilities.EnumerateInstanceExtensionNames()];
 
         HashSet<VkUtf8String> requiredLayerSet = [..requiredLayers];
         HashSet<VkUtf8String> requiredExtensionSet = [.. requiredExtensions];
@@ -67,7 +66,7 @@ internal sealed unsafe class VulkanInstance : IDisposable
         {
             debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
             debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
-            debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
+            debugUtilsCreateInfo.pfnUserCallback = &VulkanUtilities.DebugMessengerCallback;
             instanceCreateInfo.pNext = &debugUtilsCreateInfo;
         }
 
@@ -200,83 +199,6 @@ internal sealed unsafe class VulkanInstance : IDisposable
         return names;
     }
 
-    public static VkUtf8String[] EnumerateInstanceLayerNames()
-    {
-        Vulkan.vkEnumerateInstanceLayerProperties(out var count)
-            .CheckResult("failed to get instance layer properties");
-
-        if (count == 0) return [];
-
-        var props = new VkLayerProperties[count];
-
-        Vulkan.vkEnumerateInstanceLayerProperties(props)
-            .CheckResult("failed to get instance layer properties");
-
-        var names = new VkUtf8String[count];
-        for (var i = 0; i < count; i++)
-            fixed (byte* pLayerName = props[i].layerName)
-            {
-                names[i] = new VkUtf8String(pLayerName);
-            }
-
-        return names;
-    }
-
-    public static VkUtf8String[] EnumerateInstanceExtensionNames()
-    {
-        Vulkan.vkEnumerateInstanceExtensionProperties(out var count)
-            .CheckResult("failed to get instance layer properties");
-
-        if (count == 0) return [];
-
-        var props = new VkExtensionProperties[(int)count];
-
-        Vulkan.vkEnumerateInstanceExtensionProperties(props)
-            .CheckResult("failed to get instance layer properties");
-
-        var names = new VkUtf8String[count];
-        for (var i = 0; i < count; i++)
-            fixed (byte* pExtensionName = props[i].extensionName)
-            {
-                names[i] = new VkUtf8String(pExtensionName);
-            }
-
-        return names;
-    }
-
-    public static bool CheckIsSupported(VkVersion apiVersion)
-    {
-        try
-        {
-            var res = Vulkan.vkInitialize();
-            if (res != VkResult.Success) return false;
-
-            uint propCount;
-            res = Vulkan.vkEnumerateInstanceExtensionProperties(&propCount, null);
-            if (res != VkResult.Success) return false;
-
-            // We require Vulkan 1.3 or higher
-            var version = Vulkan.vkEnumerateInstanceVersion();
-            if (version < apiVersion)
-                return false;
-
-            // TODO: Enumerate physical devices and try to create instance.
-
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    [UnmanagedCallersOnly]
-    private static uint DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* userData)
-    {
-        var message = new VkUtf8String(pCallbackData->pMessage);
-        Console.WriteLine($"[Vulkan][{messageTypes}][{messageSeverity}]: {message}");
-        return Vulkan.VK_FALSE;
-    }
 
     public static implicit operator VkInstance(VulkanInstance instance)
     {

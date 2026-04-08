@@ -5,14 +5,27 @@ using Vortice.Vulkan;
 namespace G2D;
 
 [StructLayout(LayoutKind.Sequential)]
-internal record struct InstanceData
+internal unsafe struct InstanceData
 {
     public Vector2 Translation = Vector2.Zero;
+
     public float Rotation = 0;
+
     public Vector2 Scale = Vector2.One;
+
     public Vector2 OriginOffset = Vector2.Zero;
+
     public Vector2 Shear = Vector2.Zero;
+
     public Vector4 Color = Colors.White;
+
+    public Vector2 TextureScale = Vector2.One;
+
+    public Vector2 TextureOffset = Vector2.Zero;
+
+    public uint IsTexture = 0;
+
+    public fixed uint TextureIndices[14];
 
     public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color)
     {
@@ -34,7 +47,7 @@ internal record struct InstanceData
     {
     }
 
-    public static unsafe VkVertexInputBindingDescription[] GetBindingDescriptions()
+    public static VkVertexInputBindingDescription[] GetBindingDescriptions()
     {
         return
         [
@@ -92,6 +105,125 @@ internal record struct InstanceData
                 location = 8,
                 format = VkFormat.R32G32B32A32Sfloat,
                 offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(Color))
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 9,
+                format = VkFormat.R32G32Sfloat,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureScale))
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 10,
+                format = VkFormat.R32G32Sfloat,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureOffset))
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 11,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(IsTexture))
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 12,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 0 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 13,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 1 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 14,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 2 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 15,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 3 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 16,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 4 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 17,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 5 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 18,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 6 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 19,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 7 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 20,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 8 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 21,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 9 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 22,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 10 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 23,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 11 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 24,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 12 * (uint)sizeof(uint)
+            },
+            new VkVertexInputAttributeDescription
+            {
+                binding = 1,
+                location = 25,
+                format = VkFormat.R32Uint,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureIndices)) + 13 * (uint)sizeof(uint)
             }
         ];
     }

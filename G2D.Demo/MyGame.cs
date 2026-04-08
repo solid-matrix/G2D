@@ -8,20 +8,23 @@ internal class MyGame : Game
     private const bool EnableDebug = false;
 #endif
 
+    private Texture _texture;
+
     protected override void Config(Config config)
     {
         config.DebugMode = EnableDebug;
         config.ApplicationName = "G2D Game";
         config.WindowTitle = "G2D Game";
         config.WindowResizable = true;
-        // config.VSync = false;
     }
 
     protected override void Load()
     {
-        Console.WriteLine("Loaded");
         Window.HideCursor();
-        GraphicsContext.ClearColor = Colors.White;
+
+        GraphicsContext.ClearColor = Colors.CornflowerBlue;
+
+        _texture = LoadTexture(Embedded.GetBytes("Assets/Images/background-pattern.png"));
     }
 
     protected override void Unload()
@@ -35,9 +38,9 @@ internal class MyGame : Game
 
     protected override void Draw(Graphics g)
     {
-        // Graphics.SetColor(new Color(1, 0.0f, 0.0f));
-
         g.DrawRect(new Rect(0, 0, 40, 40), Colors.Black);
+
+        g.DrawTexture(_texture, g.Extent / 2 - _texture.Extent / 2);
 
         var pos = Mouse.GetPosition();
         g.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.DarkRed);

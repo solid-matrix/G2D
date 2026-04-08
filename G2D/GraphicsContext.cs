@@ -82,7 +82,7 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         // Select Physical Device 
         var physicalDevices = _instance.EnumeratePhysicalDevices();
-        var physicalDevice = SelectPhysicalDevice(_instance, physicalDevices, _surface);
+        var physicalDevice = VulkanUtilities.SelectPhysicalDevice(_instance, physicalDevices, _surface);
         if (physicalDevice == VkPhysicalDevice.Null) throw new Exception("failed to find a suitable physical device!");
 
         // Create Device
@@ -115,7 +115,6 @@ public sealed unsafe class GraphicsContext : IDisposable
                 .CheckResult("failed to create descriptor pool");
         }
 
-
         // Create UniformBuffer Manager
         _uniformBufferManager = new UniformBufferManager(_device, _frameCountInFlight, _descriptorPool);
 
@@ -124,9 +123,6 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         // Create Sampler Manager
         _samplerManager = new SamplerManager(_device, _descriptorPool);
-
-        // TODO bind sampler descriptor per frame;
-
 
         // Pipeline Layout
         VkDescriptorSetLayout[] setLayouts =
@@ -158,8 +154,9 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         // Create Common Graphics Pipeline
         _defaultGraphicsPipeline = _graphicsPipelineFactory.Create(
-            Game.InternalResource.GetBytes("Assets/Shaders/default.vert.spv"),
-            Game.InternalResource.GetBytes("Assets/Shaders/default.frag.spv")
+            Game.InternalEmbedded.GetBytes("Assets/Shaders/default.vert.spv"),
+            Game.InternalEmbedded.GetBytes("Assets/Shaders/default.frag.spv")
+            //colorBlend: GraphicsPipelineColorBlendOption.Alpha
         );
 
         // Create Vertex Buffer Pool
@@ -271,12 +268,11 @@ public sealed unsafe class GraphicsContext : IDisposable
             .CheckResult("failed to reset command buffer");
 
         // begin command buffer
-        VkCommandBufferBeginInfo beginInfo = new() { flags = VkCommandBufferUsageFlags.OneTimeSubmit };
-        Api.vkBeginCommandBuffer(_commandBuffers[_currentFrame], &beginInfo)
+        Api.vkBeginCommandBuffer(_commandBuffers[_currentFrame], VkCommandBufferUsageFlags.OneTimeSubmit)
             .CheckResult("failed to create command buffer");
 
         // transit image layout for color attachment
-        TransitionImageLayout(_commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
+        VulkanUtilities.TransitionImageLayout(_device, _commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
             VkImageLayout.Undefined, VkImageLayout.ColorAttachmentOptimal,
             VkAccessFlags2.None, VkAccessFlags2.ColorAttachmentWrite,
             VkPipelineStageFlags2.TopOfPipe, VkPipelineStageFlags2.ColorAttachmentOutput);
@@ -345,7 +341,7 @@ public sealed unsafe class GraphicsContext : IDisposable
         Api.vkCmdEndRendering(_commandBuffers[_currentFrame]);
 
         // transit image layout for presenting
-        TransitionImageLayout(_commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
+        VulkanUtilities.TransitionImageLayout(_device, _commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
             VkImageLayout.ColorAttachmentOptimal, VkImageLayout.PresentSrcKHR,
             VkAccessFlags2.ColorAttachmentWrite, VkAccessFlags2.None,
             VkPipelineStageFlags2.ColorAttachmentOutput, VkPipelineStageFlags2.BottomOfPipe
@@ -394,96 +390,5 @@ public sealed unsafe class GraphicsContext : IDisposable
             throw new VkException("failed to present swap chain image");
 
         _currentFrame = (_currentFrame + 1) % _frameCountInFlight;
-    }
-
-    internal void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image,
-        VkImageLayout oldLayout, VkImageLayout newLayout,
-        VkAccessFlags2 srcAccessMask, VkAccessFlags2 dstAccessMask,
-        VkPipelineStageFlags2 srcStage, VkPipelineStageFlags2 dstStage)
-    {
-        // Initialize the VkImageMemoryBarrier2 structure
-        var imageBarrier = new VkImageMemoryBarrier2
-        {
-            srcStageMask = srcStage, // Source pipeline stage mask
-            dstStageMask = dstStage, // Destination pipeline stage mask
-
-            srcAccessMask = srcAccessMask, // Source access mask
-            dstAccessMask = dstAccessMask, // Destination access mask
-
-            oldLayout = oldLayout, // Current layout of the image
-            newLayout = newLayout, // Target layout of the image
-
-            image = image,
-            subresourceRange = new VkImageSubresourceRange(Vulkan.VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1)
-        };
-
-        VkDependencyInfo dependencyInfo = new()
-        {
-            dependencyFlags = VkDependencyFlags.ByRegion,
-            // dependencyFlags = VkDependencyFlags.None,
-            imageMemoryBarrierCount = 1,
-            pImageMemoryBarriers = &imageBarrier
-        };
-
-        Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
-    }
-
-    private static VkPhysicalDevice SelectPhysicalDevice(VulkanInstance instance, VkPhysicalDevice[] physicalDevices, VkSurfaceKHR surface)
-    {
-        var max = 0;
-        var selected = VkPhysicalDevice.Null;
-
-        foreach (var physicalDevice in physicalDevices)
-        {
-            var rank = RankPhysicalDevice(instance, physicalDevice, surface);
-            if (rank > max)
-            {
-                max = rank;
-                selected = physicalDevice;
-            }
-        }
-
-        return selected;
-    }
-
-    private static int RankPhysicalDevice(VulkanInstance instance, VkPhysicalDevice device, VkSurfaceKHR surface)
-    {
-        var (graphicsFamily, presentFamily, computeFamily) = instance.QueryGraphicsPresentQueueFamilies(device, surface);
-
-        if (graphicsFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
-        if (presentFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
-        if (computeFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
-
-        var formats = instance.GetPhysicalDeviceSurfaceFormats(device, surface);
-        if (formats.Length == 0) return -1;
-
-        var presentModes = instance.GetPhysicalDeviceSurfacePresentModes(device, surface);
-        if (presentModes.Length == 0) return -1;
-
-        VkPhysicalDeviceFeatures2 queryDeviceFeatures2 = new();
-        VkPhysicalDeviceVulkan12Features vulkan12Features = new();
-        VkPhysicalDeviceVulkan13Features vulkan13Features = new();
-
-        queryDeviceFeatures2.pNext = &vulkan12Features;
-        vulkan12Features.pNext = &vulkan13Features;
-
-        instance.Api.vkGetPhysicalDeviceFeatures2(device, &queryDeviceFeatures2);
-
-        if (!vulkan12Features.descriptorIndexing) return -1;
-        if (!vulkan12Features.runtimeDescriptorArray) return -1;
-        if (!vulkan12Features.shaderSampledImageArrayNonUniformIndexing) return -1;
-        if (!vulkan13Features.dynamicRendering) return -1;
-        if (!vulkan13Features.synchronization2) return -1;
-
-        var rank = 0;
-        VkPhysicalDeviceProperties props;
-        VkPhysicalDeviceDescriptorIndexingProperties indexingProps = new();
-        VkPhysicalDeviceProperties2 props2 = new() { pNext = &indexingProps };
-        instance.Api.vkGetPhysicalDeviceProperties(device, &props);
-        instance.Api.vkGetPhysicalDeviceProperties2(device, &props2);
-
-        if (props.deviceType == VkPhysicalDeviceType.DiscreteGpu) rank += 1000;
-
-        return rank;
     }
 }

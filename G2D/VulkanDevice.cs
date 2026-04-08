@@ -67,8 +67,8 @@ internal sealed unsafe class VulkanDevice : IDisposable
             runtimeDescriptorArray = true,
             shaderSampledImageArrayNonUniformIndexing = true,
             descriptorBindingSampledImageUpdateAfterBind = true,
-            descriptorBindingPartiallyBound = true,
-            descriptorBindingVariableDescriptorCount = true
+            descriptorBindingPartiallyBound = true
+            // descriptorBindingVariableDescriptorCount = true
         };
         VkPhysicalDeviceVulkan13Features vulkan13Features = new()
         {

@@ -6,7 +6,7 @@ public abstract unsafe class Game
 {
     private bool _running;
 
-    internal static EmbeddedResource InternalResource { get; } = new(typeof(Game).Assembly);
+    internal static EmbeddedResource InternalEmbedded { get; } = new(typeof(Game).Assembly);
 
     protected Keyboard Keyboard { get; private set; } = null!;
 
@@ -14,7 +14,7 @@ public abstract unsafe class Game
 
     protected GamePad GamePad { get; private set; } = null!;
 
-    protected EmbeddedResource Resource { get; private set; } = null!;
+    protected EmbeddedResource Embedded { get; private set; } = null!;
 
     protected StepTimer Timer { get; private set; } = null!;
 
@@ -29,12 +29,17 @@ public abstract unsafe class Game
         Cleanup();
     }
 
+    public Texture LoadTexture(byte[] raw)
+    {
+        return GraphicsContext._textureManager.CreateTextureFromData(raw);
+    }
+
     internal void Initialize()
     {
         var config = new Config();
         Config(config);
 
-        Resource = new EmbeddedResource(GetType().Assembly);
+        Embedded = new EmbeddedResource(GetType().Assembly);
 
         Window = new Window(
             config.WindowTitle, config.WindowWidth, config.WindowHeight,
@@ -110,10 +115,8 @@ public abstract unsafe class Game
     {
         Timer.WaitTargetFps();
 
-        // internal update
         Timer.Step();
 
-        // user update
         Update(Timer.GetDeltaTime());
 
         GraphicsContext.RenderFrame(session =>
