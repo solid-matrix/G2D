@@ -12,11 +12,11 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     internal readonly List<VkBuffer> _buffer;
 
-    private readonly List<ulong> _size;
+    internal readonly List<ulong> _size;
 
-    private readonly List<ulong> _occupy;
+    internal readonly List<ulong> _occupy;
 
-    private readonly List<nint> _addr;
+    internal readonly List<nint> _addr;
 
     internal readonly List<VmaAllocation> _allocation;
 

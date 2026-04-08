@@ -1,164 +1,68 @@
 ﻿using System.Numerics;
+using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 
 namespace G2D;
 
-public sealed unsafe class Graphics
+public unsafe struct Graphics
 {
-    internal readonly VulkanContext _context;
+    private readonly DrawSessionState _sessionState;
 
-    internal readonly VkDeviceApi _api;
+    private readonly Extent2 _extent;
 
-    internal readonly GraphicsPipeline _defaultPipeline;
+    private GraphicsPipeline? _currentPipeline;
 
-
-    internal VkCommandBuffer _commandBuffer;
-
-    internal uint _imageIndex;
-
-    internal VkImage _image;
-
-    internal VkImageView _imageView;
-
-    internal VkExtent2D _extent;
-
-    // uniform buffer
-    internal BufferSpan _uniformBuffer;
-
-    internal VkDescriptorSet _uniformDescriptorSet;
-
-    // vertex / instance / index
-    internal BufferSpanPool _vertexBufferPool;
-
-    internal BufferSpanPool _instanceBufferPool;
-
-    internal BufferSpanPool _indexBufferPool;
-
-    // sampler
-    internal VkDescriptorSet _samplerDescriptorSet;
-
-    // image
-    internal VkDescriptorSet _textureDescriptorSet;
-
-
-    // state
-    internal GraphicsPipeline? _currentPipeline;
-
-    internal bool _begunRender;
-
-    internal bool _drawable;
-
-    public Color _clearColor = Colors.Transparent;
-
-    private Uniform _uniform;
-
-
-    public Graphics(VulkanContext context)
+    internal Graphics(DrawSessionState sessionState)
     {
-        _context = context;
-        _api = _context.Api;
-        _defaultPipeline = _context._defaultGraphicsPipeline;
+        _sessionState = sessionState;
+        _extent = new Extent2(_sessionState._extent.width, _sessionState._extent.height);
 
-        ResetState();
+        Uniform.View = Matrix4x4.Identity;
+        Uniform.Color = Colors.White;
+        Uniform.Resolution = _extent;
     }
 
-    internal ref Uniform Uniform => ref _uniform;
+    internal VkDeviceApi Api => _sessionState._api;
 
-    public Extent2 Extent => new(_extent.width, _extent.height);
+    public Extent2 Extent => _extent;
 
-    internal void ResetState()
-    {
-        _drawable = false;
-        _begunRender = false;
-        _currentPipeline = null;
-        _clearColor = Colors.Transparent;
+    internal ref Uniform Uniform => ref Unsafe.AsRef<Uniform>((void*)_sessionState._uniformBuffer.Pointer);
 
-        _uniform.Color = Colors.White;
-        _uniform.View = Matrix4x4.Identity;
-    }
+    internal VkCommandBuffer CommandBuffer => _sessionState._commandBuffer;
 
-    public void SetClearColor(Color color)
-    {
-        _clearColor = color;
-    }
+    internal BufferSpanPool VertexBufferPool => _sessionState._vertexBufferPool;
+
+    internal BufferSpanPool InstanceBufferPool => _sessionState._instanceBufferPool;
+
+    internal BufferSpanPool IndexBufferPool => _sessionState._indexBufferPool;
+
+    internal GraphicsPipeline DefaultPipeline => _sessionState._defaultPipeline;
 
     public void SetViewTransform(Matrix4x4 matrix)
     {
         Uniform.View = matrix;
-        _uniformBuffer.Upload(ref _uniform);
     }
 
     public void SetColor(Color color)
     {
         Uniform.Color = color;
-        _uniformBuffer.Upload(ref _uniform);
     }
 
-    internal void EnsureBeginRender()
+    internal void SetMousePosition(Vector2 pos)
     {
-        if (_begunRender) return;
-
-        _uniform.Resolution = new Vector2(_extent.width, _extent.height);
-        _uniformBuffer.Upload(ref _uniform);
-
-        // update & bind uniform buffer descriptor set
-        _api.vkCmdBindDescriptorSets(_commandBuffer, _defaultPipeline.BindPoint, _defaultPipeline.PipelineLayout, 0, _uniformDescriptorSet);
-
-        // bind image descriptor set
-        _api.vkCmdBindDescriptorSets(_commandBuffer, _defaultPipeline.BindPoint, _defaultPipeline.PipelineLayout, 1, _textureDescriptorSet);
-
-        // bind sampler descriptor set
-        _api.vkCmdBindDescriptorSets(_commandBuffer, _defaultPipeline.BindPoint, _defaultPipeline.PipelineLayout, 2, _samplerDescriptorSet);
-
-        // dynamic set viewport 
-        VkViewport viewport = new()
-        {
-            x = 0,
-            y = _extent.height,
-            width = _extent.width,
-            height = -_extent.height,
-            minDepth = 0.0f,
-            maxDepth = 1.0f
-        };
-        _context.Api.vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
-
-        // dynamic set scissor
-        VkRect2D scissor = new(VkOffset2D.Zero, _extent);
-        _context.Api.vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
-
-        // begin rendering
-        VkRenderingAttachmentInfo colorAttachment = new()
-        {
-            imageView = _imageView,
-            imageLayout = VkImageLayout.ColorAttachmentOptimal,
-            loadOp = VkAttachmentLoadOp.Clear,
-            storeOp = VkAttachmentStoreOp.Store,
-            clearValue = new VkClearValue(_clearColor.R, _clearColor.G, _clearColor.B, _clearColor.A)
-        };
-
-        VkRenderingInfo renderingInfo = new()
-        {
-            renderArea = new VkRect2D(VkOffset2D.Zero, _extent),
-            layerCount = 1u,
-            colorAttachmentCount = 1,
-            pColorAttachments = &colorAttachment
-        };
-
-        _context.Api.vkCmdBeginRendering(_commandBuffer, &renderingInfo);
-        _begunRender = true;
+        Uniform.MousePosition = pos;
     }
 
-    internal void EnsureEndRender()
+    internal void SetTime(float time)
     {
-        if (!_begunRender) return;
-        _context.Api.vkCmdEndRendering(_commandBuffer);
+        Uniform.Time = time;
     }
 
     internal void SwitchGraphicsPipeline(GraphicsPipeline pipeline)
     {
         if (_currentPipeline != pipeline)
         {
-            _context.Api.vkCmdBindPipeline(_commandBuffer, pipeline.BindPoint, pipeline.Pipeline);
+            Api.vkCmdBindPipeline(CommandBuffer, pipeline.BindPoint, pipeline.Pipeline);
             _currentPipeline = pipeline;
         }
     }
@@ -167,19 +71,18 @@ public sealed unsafe class Graphics
         BufferSpan vertexBuffer, BufferSpan instanceBuffer, BufferSpan indexBuffer,
         uint indexCount, uint instanceCount, uint firstIndex = 0, int vertexOffset = 0, uint firstInstance = 0)
     {
-        EnsureBeginRender();
         SwitchGraphicsPipeline(pipeline);
 
         // bind vertex buffer
-        _api.vkCmdBindVertexBuffer(_commandBuffer, 0, vertexBuffer.Buffer, vertexBuffer.Offset);
+        Api.vkCmdBindVertexBuffer(CommandBuffer, 0, vertexBuffer.Buffer, vertexBuffer.Offset);
 
         // bind instance buffer
-        _api.vkCmdBindVertexBuffer(_commandBuffer, 1, instanceBuffer.Buffer, instanceBuffer.Offset);
+        Api.vkCmdBindVertexBuffer(CommandBuffer, 1, instanceBuffer.Buffer, instanceBuffer.Offset);
 
         // bind index buffer
-        _api.vkCmdBindIndexBuffer(_commandBuffer, indexBuffer.Buffer, indexBuffer.Offset, VkIndexType.Uint32);
+        Api.vkCmdBindIndexBuffer(CommandBuffer, indexBuffer.Buffer, indexBuffer.Offset, VkIndexType.Uint32);
 
-        _api.vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+        Api.vkCmdDrawIndexed(CommandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
     public void DrawRect(Rect rect, Color color)
@@ -203,10 +106,10 @@ public sealed unsafe class Graphics
 
         uint[] indices = [0, 1, 2, 2, 1, 3];
 
-        var vertexBufferSpan = _vertexBufferPool.AllocateUpload(vertices);
-        var instanceBufferSpan = _instanceBufferPool.AllocateUpload(instances);
-        var indexBufferSpan = _indexBufferPool.AllocateUpload(indices);
+        var vertexBufferSpan = VertexBufferPool.AllocateUpload(vertices);
+        var instanceBufferSpan = InstanceBufferPool.AllocateUpload(instances);
+        var indexBufferSpan = IndexBufferPool.AllocateUpload(indices);
 
-        Draw(_defaultPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
+        Draw(DefaultPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
     }
 }

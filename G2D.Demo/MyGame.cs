@@ -21,6 +21,7 @@ internal class MyGame : Game
     {
         Console.WriteLine("Loaded");
         Window.HideCursor();
+        GraphicsContext.ClearColor = Colors.White;
     }
 
     protected override void Unload()
@@ -32,16 +33,14 @@ internal class MyGame : Game
     {
     }
 
-    protected override void Draw()
+    protected override void Draw(Graphics g)
     {
-        Graphics.SetClearColor(Colors.CornflowerBlue);
-
         // Graphics.SetColor(new Color(1, 0.0f, 0.0f));
 
-        Graphics.DrawRect(new Rect(0, 0, 40, 40), Colors.Black);
+        g.DrawRect(new Rect(0, 0, 40, 40), Colors.Black);
 
         var pos = Mouse.GetPosition();
-        Graphics.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.DarkRed);
+        g.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.DarkRed);
     }
 
     protected override void Event(ref KeyboardEvent e)

@@ -20,9 +20,7 @@ public abstract unsafe class Game
 
     protected Window Window { get; private set; } = null!;
 
-    protected Graphics Graphics { get; private set; } = null!;
-
-    internal VulkanContext VulkanContext { get; private set; } = null!;
+    protected GraphicsContext GraphicsContext { get; private set; } = null!;
 
     public void Launch(string[]? args = null)
     {
@@ -55,13 +53,11 @@ public abstract unsafe class Game
             Timer = new StepTimer(config.TargetFps);
         }
 
-        VulkanContext = new VulkanContext(
+        GraphicsContext = new GraphicsContext(
             Window,
             config.ApplicationName, config.ApplicationVersion,
             config.EngineName, config.EngineVersion,
             config.DebugMode);
-
-        Graphics = new Graphics(VulkanContext);
 
         Keyboard = new Keyboard();
         Mouse = new Mouse();
@@ -70,7 +66,7 @@ public abstract unsafe class Game
 
     internal void Cleanup()
     {
-        ((IDisposable)VulkanContext).Dispose();
+        ((IDisposable)GraphicsContext).Dispose();
         ((IDisposable)Window).Dispose();
     }
 
@@ -120,16 +116,13 @@ public abstract unsafe class Game
         // user update
         Update(Timer.GetDeltaTime());
 
-        VulkanContext.StartDrawSession(Graphics);
-
-        if (!Graphics._drawable) return;
-
-        Graphics.Uniform.Time = Timer.GetTimeF();
-        Graphics.Uniform.MousePosition = Mouse.GetPosition();
-
-        Draw();
-
-        VulkanContext.EndDrawSession(Graphics);
+        GraphicsContext.RenderFrame(session =>
+        {
+            var g = new Graphics(session);
+            g.Uniform.MousePosition = Mouse.GetPosition();
+            g.Uniform.Time = Timer.GetTimeF();
+            Draw(g);
+        });
     }
 
     internal void InternalEvent(ref SDL_Event e)
@@ -387,7 +380,7 @@ public abstract unsafe class Game
     {
     }
 
-    protected virtual void Draw()
+    protected virtual void Draw(Graphics g)
     {
     }
 

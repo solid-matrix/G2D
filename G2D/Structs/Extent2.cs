@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace G2D;
 
 public readonly record struct Extent2(float Width, float Height)
@@ -90,5 +92,10 @@ public readonly record struct Extent2(float Width, float Height)
     public static explicit operator Extent2I(Extent2 value)
     {
         return new Extent2I((int)value.Width, (int)value.Height);
+    }
+
+    public static implicit operator Vector2(Extent2 value)
+    {
+        return new Vector2(value.Width, value.Height);
     }
 }

@@ -26,6 +26,8 @@ internal sealed unsafe class BufferSpan
 
     public ulong Size => _size;
 
+    public nint Pointer => _pool._addr[_index] + (nint)_offset;
+
     public void Upload<T>(ref T data) where T : unmanaged
     {
         var size = (ulong)sizeof(T);

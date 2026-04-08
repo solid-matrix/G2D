@@ -3,7 +3,7 @@ using Vortice.Vulkan;
 
 namespace G2D;
 
-public sealed unsafe class VulkanContext : IDisposable
+public sealed unsafe class GraphicsContext : IDisposable
 {
     internal const uint MaxFrameCountInFlight = 2;
 
@@ -59,8 +59,10 @@ public sealed unsafe class VulkanContext : IDisposable
 
     internal readonly VkSemaphore[] _releaseSemaphores;
 
+    internal Color _clearColor = new();
 
-    internal VulkanContext(Window window, string appName, Version appVersion, string engineName, Version engineVersion, bool debugEnabled = false)
+
+    internal GraphicsContext(Window window, string appName, Version appVersion, string engineName, Version engineVersion, bool debugEnabled = false)
     {
         _window = window;
 
@@ -109,7 +111,7 @@ public sealed unsafe class VulkanContext : IDisposable
                 pPoolSizes = pDescriptorPoolSizes,
                 maxSets = _frameCountInFlight * 3
             };
-            _device.Api.vkCreateDescriptorPool(&descriptorPoolInfo, out _descriptorPool)
+            Api.vkCreateDescriptorPool(&descriptorPoolInfo, out _descriptorPool)
                 .CheckResult("failed to create descriptor pool");
         }
 
@@ -147,7 +149,7 @@ public sealed unsafe class VulkanContext : IDisposable
             };
         }
 
-        _device.Api.vkCreatePipelineLayout(in pipelineLayoutInfo, out _pipelineLayout)
+        Api.vkCreatePipelineLayout(in pipelineLayoutInfo, out _pipelineLayout)
             .CheckResult("failed to create pipeline layout");
 
 
@@ -176,7 +178,7 @@ public sealed unsafe class VulkanContext : IDisposable
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
-            _device.Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out _commandBuffers[i])
+            Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out _commandBuffers[i])
                 .CheckResult("failed to allocate command buffer");
 
         // Create SyncObjects
@@ -185,13 +187,19 @@ public sealed unsafe class VulkanContext : IDisposable
         _releaseSemaphores = new VkSemaphore[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            _device.Api.vkCreateFence(VkFenceCreateFlags.Signaled, out _submitFences[i])
+            Api.vkCreateFence(VkFenceCreateFlags.Signaled, out _submitFences[i])
                 .CheckResult("failed to create fence");
-            _device.Api.vkCreateSemaphore(out _acquireSemaphores[i])
+            Api.vkCreateSemaphore(out _acquireSemaphores[i])
                 .CheckResult("failed to create semaphore");
-            _device.Api.vkCreateSemaphore(out _releaseSemaphores[i])
+            Api.vkCreateSemaphore(out _releaseSemaphores[i])
                 .CheckResult("failed to create semaphore");
         }
+    }
+
+    public Color ClearColor
+    {
+        get => _clearColor;
+        set => _clearColor = value;
     }
 
     internal VkDeviceApi Api => _device.Api;
@@ -216,15 +224,15 @@ public sealed unsafe class VulkanContext : IDisposable
         _samplerManager.Dispose();
 
 
-        _device.Api.vkDestroyDescriptorPool(_descriptorPool);
+        Api.vkDestroyDescriptorPool(_descriptorPool);
 
-        _device.Api.vkDestroyPipelineLayout(_pipelineLayout);
+        Api.vkDestroyPipelineLayout(_pipelineLayout);
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            _device.Api.vkDestroyFence(_submitFences[i]);
-            _device.Api.vkDestroySemaphore(_acquireSemaphores[i]);
-            _device.Api.vkDestroySemaphore(_releaseSemaphores[i]);
+            Api.vkDestroyFence(_submitFences[i]);
+            Api.vkDestroySemaphore(_acquireSemaphores[i]);
+            Api.vkDestroySemaphore(_releaseSemaphores[i]);
         }
 
 
@@ -233,12 +241,13 @@ public sealed unsafe class VulkanContext : IDisposable
         _instance.Dispose();
     }
 
-    internal void StartDrawSession(Graphics g)
+    internal void RenderFrame(Action<DrawSessionState> draw)
     {
         if (_window.IsMinimized()) return;
 
         // wait for last submit
         Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, ulong.MaxValue);
+
         Api.vkResetFences(_submitFences[_currentFrame]);
 
         // acquire next image
@@ -249,7 +258,8 @@ public sealed unsafe class VulkanContext : IDisposable
             return;
         }
 
-        if (result != VkResult.Success && result != VkResult.SuboptimalKHR) throw new VkException("failed to acquire swap chain image!");
+        if (result != VkResult.Success && result != VkResult.SuboptimalKHR)
+            throw new VkException("failed to acquire swap chain image!");
 
         // reset vertex / instance / index buffer pool
         _vertexBufferPools[_currentFrame].Reset();
@@ -257,7 +267,8 @@ public sealed unsafe class VulkanContext : IDisposable
         _indexBufferPools[_currentFrame].Reset();
 
         // reset command buffer
-        Api.vkResetCommandBuffer(_commandBuffers[_currentFrame], VkCommandBufferResetFlags.None).CheckResult();
+        Api.vkResetCommandBuffer(_commandBuffers[_currentFrame], VkCommandBufferResetFlags.None)
+            .CheckResult("failed to reset command buffer");
 
         // begin command buffer
         VkCommandBufferBeginInfo beginInfo = new() { flags = VkCommandBufferUsageFlags.OneTimeSubmit };
@@ -266,69 +277,123 @@ public sealed unsafe class VulkanContext : IDisposable
 
         // transit image layout for color attachment
         TransitionImageLayout(_commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
-            Vulkan.VK_IMAGE_LAYOUT_UNDEFINED, Vulkan.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            0, Vulkan.VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-            Vulkan.VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, Vulkan.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+            VkImageLayout.Undefined, VkImageLayout.ColorAttachmentOptimal,
+            VkAccessFlags2.None, VkAccessFlags2.ColorAttachmentWrite,
+            VkPipelineStageFlags2.TopOfPipe, VkPipelineStageFlags2.ColorAttachmentOutput);
 
-        g._commandBuffer = _commandBuffers[_currentFrame];
-        g._imageIndex = imageIndex;
-        g._image = _swapchain.Images[imageIndex];
-        g._imageView = _swapchain.ImageViews[imageIndex];
-        g._extent = _swapchain.Extent;
+        // begin rendering
+        VkRenderingAttachmentInfo colorAttachment = new()
+        {
+            imageView = _swapchain.ImageViews[imageIndex],
+            imageLayout = VkImageLayout.ColorAttachmentOptimal,
+            loadOp = VkAttachmentLoadOp.Clear,
+            storeOp = VkAttachmentStoreOp.Store,
+            clearValue = new VkClearValue(_clearColor.R, _clearColor.G, _clearColor.B, _clearColor.A)
+        };
 
-        g._uniformBuffer = _uniformBufferManager.Buffers[_currentFrame];
-        g._uniformDescriptorSet = _uniformBufferManager.DescriptorSets[_currentFrame];
+        VkRenderingInfo renderingInfo = new()
+        {
+            renderArea = new VkRect2D(VkOffset2D.Zero, _swapchain.Extent),
+            layerCount = 1u,
+            colorAttachmentCount = 1,
+            pColorAttachments = &colorAttachment
+        };
 
-        g._samplerDescriptorSet = _samplerManager.DescriptorSet;
-        g._textureDescriptorSet = _textureManager.DescriptorSet;
+        Api.vkCmdBeginRendering(_commandBuffers[_currentFrame], &renderingInfo);
 
-        g._vertexBufferPool = _vertexBufferPools[_currentFrame];
-        g._instanceBufferPool = _instanceBufferPools[_currentFrame];
-        g._indexBufferPool = _indexBufferPools[_currentFrame];
+        // dynamic set viewport 
+        VkViewport viewport = new()
+        {
+            x = 0,
+            y = _swapchain.Extent.height,
+            width = _swapchain.Extent.width,
+            height = -_swapchain.Extent.height,
+            minDepth = 0.0f,
+            maxDepth = 1.0f
+        };
+        Api.vkCmdSetViewport(_commandBuffers[_currentFrame], 0, 1, &viewport);
 
-        g._drawable = true;
-    }
+        // dynamic set scissor
+        VkRect2D scissor = new(VkOffset2D.Zero, _swapchain.Extent);
+        Api.vkCmdSetScissor(_commandBuffers[_currentFrame], 0, 1, &scissor);
 
-    internal void EndDrawSession(Graphics g)
-    {
-        g.EnsureEndRender();
+        // update & bind uniform buffer descriptor set
+        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _pipelineLayout, 0, _uniformBufferManager.DescriptorSets[_currentFrame]);
 
-        // transit image layout for present
-        TransitionImageLayout(_commandBuffers[_currentFrame], g._image,
-            Vulkan.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, Vulkan.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            Vulkan.VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, 0,
-            Vulkan.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, Vulkan.VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT);
+        // bind image descriptor set
+        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _pipelineLayout, 1, _textureManager.DescriptorSet);
+
+        // bind sampler descriptor set
+        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _pipelineLayout, 2, _samplerManager.DescriptorSet);
+
+
+        var drawSession = new DrawSessionState
+        {
+            _api = Api,
+            _extent = _swapchain.Extent,
+            _defaultPipeline = _defaultGraphicsPipeline,
+            _commandBuffer = _commandBuffers[_currentFrame],
+            _uniformBuffer = _uniformBufferManager.Buffers[_currentFrame],
+            _vertexBufferPool = _vertexBufferPools[_currentFrame],
+            _instanceBufferPool = _instanceBufferPools[_currentFrame],
+            _indexBufferPool = _indexBufferPools[_currentFrame]
+        };
+
+        draw(drawSession);
+
+        // end rendering
+        Api.vkCmdEndRendering(_commandBuffers[_currentFrame]);
+
+        // transit image layout for presenting
+        TransitionImageLayout(_commandBuffers[_currentFrame], _swapchain.Images[imageIndex],
+            VkImageLayout.ColorAttachmentOptimal, VkImageLayout.PresentSrcKHR,
+            VkAccessFlags2.ColorAttachmentWrite, VkAccessFlags2.None,
+            VkPipelineStageFlags2.ColorAttachmentOutput, VkPipelineStageFlags2.BottomOfPipe
+        );
 
         // end command buffer
         Api.vkEndCommandBuffer(_commandBuffers[_currentFrame]).CheckResult();
 
         // submit 
-        var waitStage = VkPipelineStageFlags.ColorAttachmentOutput;
-        var waitSemaphore = _acquireSemaphores[_currentFrame];
-        var signalSemaphore = _releaseSemaphores[_currentFrame];
         var commandBuffer = _commandBuffers[_currentFrame];
+        var swapchain = _swapchain.Swapchain;
+        var waitStage = VkPipelineStageFlags.ColorAttachmentOutput;
 
-        VkSubmitInfo submitInfo = new()
+        var acquireSemaphore = _acquireSemaphores[_currentFrame];
+        var releaseSemaphore = _releaseSemaphores[_currentFrame];
+
+        var submitInfo = new VkSubmitInfo
         {
             commandBufferCount = 1u,
             pCommandBuffers = &commandBuffer,
-            waitSemaphoreCount = 1u,
-            pWaitSemaphores = &waitSemaphore,
             pWaitDstStageMask = &waitStage,
+
+            waitSemaphoreCount = 1u,
+            pWaitSemaphores = &acquireSemaphore,
             signalSemaphoreCount = 1u,
-            pSignalSemaphores = &signalSemaphore
+            pSignalSemaphores = &releaseSemaphore
         };
-        Api.vkQueueSubmit(_device.GraphicsQueue, submitInfo, _submitFences[_currentFrame]);
+        Api.vkQueueSubmit(_device.GraphicsQueue, 1, &submitInfo, _submitFences[_currentFrame])
+            .CheckResult("failed to queue submit");
 
         // present
-        var result = _device.Api.vkQueuePresentKHR(_device.PresentQueue, _releaseSemaphores[_currentFrame], _swapchain.Swapchain, g._imageIndex);
+        var presentInfo = new VkPresentInfoKHR
+        {
+            swapchainCount = 1u,
+            pSwapchains = &swapchain,
+            pImageIndices = &imageIndex,
+
+            waitSemaphoreCount = 1u,
+            pWaitSemaphores = &releaseSemaphore
+        };
+        result = Api.vkQueuePresentKHR(_device.PresentQueue, &presentInfo);
+
         if (result is VkResult.SuboptimalKHR or VkResult.ErrorOutOfDateKHR)
             _swapchain.Recreate();
         else if (result != VkResult.Success)
             throw new VkException("failed to present swap chain image");
 
         _currentFrame = (_currentFrame + 1) % _frameCountInFlight;
-        g.ResetState();
     }
 
     internal void TransitionImageLayout(VkCommandBuffer commandBuffer, VkImage image,
@@ -340,27 +405,27 @@ public sealed unsafe class VulkanContext : IDisposable
         var imageBarrier = new VkImageMemoryBarrier2
         {
             srcStageMask = srcStage, // Source pipeline stage mask
-            srcAccessMask = srcAccessMask, // Source access mask
             dstStageMask = dstStage, // Destination pipeline stage mask
+
+            srcAccessMask = srcAccessMask, // Source access mask
             dstAccessMask = dstAccessMask, // Destination access mask
+
             oldLayout = oldLayout, // Current layout of the image
             newLayout = newLayout, // Target layout of the image
-            srcQueueFamilyIndex = Vulkan.VK_QUEUE_FAMILY_IGNORED,
-            dstQueueFamilyIndex = Vulkan.VK_QUEUE_FAMILY_IGNORED,
+
             image = image,
             subresourceRange = new VkImageSubresourceRange(Vulkan.VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1)
         };
 
-        // Initialize the VkDependencyInfo structure
         VkDependencyInfo dependencyInfo = new()
         {
-            dependencyFlags = 0, // No special dependency flags
-            imageMemoryBarrierCount = 1, // Number of image memory barriers
-            pImageMemoryBarriers = &imageBarrier // Pointer to the image memory barrier(s)
+            dependencyFlags = VkDependencyFlags.ByRegion,
+            // dependencyFlags = VkDependencyFlags.None,
+            imageMemoryBarrierCount = 1,
+            pImageMemoryBarriers = &imageBarrier
         };
 
-        // Record the pipeline barrier into the command buffer
-        _device.Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+        Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
     }
 
     private static VkPhysicalDevice SelectPhysicalDevice(VulkanInstance instance, VkPhysicalDevice[] physicalDevices, VkSurfaceKHR surface)
