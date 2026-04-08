@@ -122,7 +122,7 @@ public abstract unsafe class Game
 
         VulkanContext.StartDrawSession(Graphics);
 
-        if (!Graphics._requireDraw) return;
+        if (!Graphics._drawable) return;
 
         Graphics.Uniform.Time = Timer.GetTimeF();
         Graphics.Uniform.MousePosition = Mouse.GetPosition();
@@ -371,7 +371,6 @@ public abstract unsafe class Game
                     Event(ref userEvent);
                 }
 
-                // TODO
                 break;
         }
     }

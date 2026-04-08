@@ -10,13 +10,15 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     private readonly VmaMemoryUsage _memoryUsage;
 
-    private readonly List<VkBuffer> _buffers;
+    internal readonly List<VkBuffer> _buffer;
 
-    private readonly List<ulong> _sizes;
+    private readonly List<ulong> _size;
 
-    private readonly List<ulong> _occupied;
+    private readonly List<ulong> _occupy;
 
-    private readonly List<VmaAllocation> _allocations;
+    private readonly List<nint> _addr;
+
+    internal readonly List<VmaAllocation> _allocation;
 
     private ulong _sizeCount;
 
@@ -26,10 +28,11 @@ internal sealed unsafe class BufferSpanPool : IDisposable
         _bufferUsage = bufferUsage;
         _memoryUsage = memoryUsage;
 
-        _buffers = [];
-        _sizes = [];
-        _occupied = [];
-        _allocations = [];
+        _buffer = [];
+        _size = [];
+        _occupy = [];
+        _allocation = [];
+        _addr = [];
         _sizeCount = 0;
 
         if (initialCapacity > 0) AddBuffer(initialCapacity);
@@ -37,46 +40,47 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     public void Dispose()
     {
-        for (var i = 0; i < _buffers.Count; i++) Vma.vmaDestroyBuffer(_device.Allocator, _buffers[i], _allocations[i]);
+        for (var i = 0; i < _buffer.Count; i++) DestroyBuffer(i);
     }
 
     public BufferSpan Allocate(ulong size)
     {
         _sizeCount += size;
 
-        for (var i = 0; i < _buffers.Count; i++)
-            if (_sizes[i] - _occupied[i] >= size)
+        for (var i = 0; i < _buffer.Count; i++)
+            if (_size[i] - _occupy[i] >= size)
             {
-                var span = new BufferSpan(this, _buffers[i], _allocations[i], _occupied[i], size);
-                _occupied[i] += size;
+                var span = new BufferSpan(this, i, _occupy[i], size);
+                _occupy[i] += size;
                 return span;
             }
 
         var bufferIndex = AddBuffer(size);
-        _occupied[bufferIndex] += size;
+        _occupy[bufferIndex] += size;
 
-        return new BufferSpan(this, _buffers[bufferIndex], _allocations[bufferIndex], 0, size);
+        return new BufferSpan(this, bufferIndex, 0, size);
     }
 
     public void Reset()
     {
-        if (_buffers.Count == 0) return;
+        if (_buffer.Count == 0) return;
 
-        if (_buffers.Count <= 1)
+        if (_buffer.Count == 1)
         {
             // if only one buffer exist, then reuse it.
-            _occupied[0] = 0;
+            _occupy[0] = 0;
             _sizeCount = 0;
             return;
         }
 
         // if more than one buffer exist, then clear all and create a larger one
-        for (var i = 0; i < _buffers.Count; i++) Vma.vmaDestroyBuffer(_device.Allocator, _buffers[i], _allocations[i]);
+        for (var i = 0; i < _buffer.Count; i++) DestroyBuffer(i);
 
-        _buffers.Clear();
-        _allocations.Clear();
-        _sizes.Clear();
-        _occupied.Clear();
+        _buffer.Clear();
+        _allocation.Clear();
+        _size.Clear();
+        _occupy.Clear();
+        _addr.Clear();
 
         AddBuffer(_sizeCount);
 
@@ -97,18 +101,35 @@ internal sealed unsafe class BufferSpanPool : IDisposable
             usage = _memoryUsage
         };
 
-        if (_memoryUsage is VmaMemoryUsage.CpuToGpu or VmaMemoryUsage.CpuOnly)
-            allocInfo.requiredFlags = VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCoherent;
+        if (_memoryUsage == VmaMemoryUsage.CpuToGpu)
+        {
+            allocInfo.requiredFlags |= VkMemoryPropertyFlags.HostVisible | VkMemoryPropertyFlags.HostCoherent;
+
+            if (_bufferUsage == VkBufferUsageFlags.UniformBuffer) allocInfo.preferredFlags |= VkMemoryPropertyFlags.HostCached;
+        }
+
 
         Vma.vmaCreateBuffer(_device.Allocator, &bufferInfo, &allocInfo, out var buffer, out var allocation, out _)
             .CheckResult("failed to create buffer");
 
-        _buffers.Add(buffer);
-        _allocations.Add(allocation);
-        _occupied.Add(0);
-        _sizes.Add(size);
+        void* addr = null;
 
-        return _buffers.Count - 1;
+        Vma.vmaMapMemory(_device.Allocator, allocation, &addr);
+
+        _buffer.Add(buffer);
+        _allocation.Add(allocation);
+        _addr.Add((nint)addr);
+
+        _occupy.Add(0);
+        _size.Add(size);
+
+        return _buffer.Count - 1;
+    }
+
+    private void DestroyBuffer(int i)
+    {
+        Vma.vmaUnmapMemory(_device.Allocator, _allocation[i]);
+        Vma.vmaDestroyBuffer(_device.Allocator, _buffer[i], _allocation[i]);
     }
 
     public BufferSpan AllocateUpload<T>(ref T data) where T : unmanaged
@@ -140,14 +161,8 @@ internal sealed unsafe class BufferSpanPool : IDisposable
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, bufferSpan._size);
 
-        void* dst = null;
-
-        Vma.vmaMapMemory(_device.Allocator, bufferSpan._allocation, &dst);
-
-        dst = (void*)((ulong)dst + bufferSpan._offset);
+        var dst = (void*)((ulong)_addr[bufferSpan._index] + bufferSpan._offset);
 
         Buffer.MemoryCopy(src, dst, size, size);
-
-        Vma.vmaUnmapMemory(_device.Allocator, bufferSpan._allocation);
     }
 }

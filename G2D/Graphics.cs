@@ -9,63 +9,72 @@ public sealed unsafe class Graphics
 
     internal readonly VkDeviceApi _api;
 
-    internal VkExtent2D _extent;
+    internal readonly GraphicsPipeline _defaultPipeline;
 
-    private Uniform _uniform;
 
-    // Per Frame Begin
     internal VkCommandBuffer _commandBuffer;
 
+    internal uint _imageIndex;
+
+    internal VkImage _image;
+
+    internal VkImageView _imageView;
+
+    internal VkExtent2D _extent;
+
+    // uniform buffer
     internal BufferSpan _uniformBuffer;
 
     internal VkDescriptorSet _uniformDescriptorSet;
 
+    // vertex / instance / index
     internal BufferSpanPool _vertexBufferPool;
 
     internal BufferSpanPool _instanceBufferPool;
 
     internal BufferSpanPool _indexBufferPool;
 
-    internal VkFence _submitFence;
+    // sampler
+    internal VkDescriptorSet _samplerDescriptorSet;
 
-    internal VkSemaphore _acquireSemaphore;
+    // image
+    internal VkDescriptorSet _textureDescriptorSet;
 
-    internal VkSemaphore _releaseSemaphore;
-    // Per Frame End
 
-    // Per Image Begin
-    internal uint _imageIndex;
-
-    internal VkImage _image;
-
-    internal VkImageView _imageView;
-    // Per Image End
-
+    // state
     internal GraphicsPipeline? _currentPipeline;
 
     internal bool _begunRender;
 
-    internal bool _requireDraw;
+    internal bool _drawable;
 
     public Color _clearColor = Colors.Transparent;
+
+    private Uniform _uniform;
+
 
     public Graphics(VulkanContext context)
     {
         _context = context;
         _api = _context.Api;
+        _defaultPipeline = _context._defaultGraphicsPipeline;
+
+        ResetState();
     }
 
     internal ref Uniform Uniform => ref _uniform;
 
     public Extent2 Extent => new(_extent.width, _extent.height);
 
-    internal void Reset()
+    internal void ResetState()
     {
-        _requireDraw = false;
+        _drawable = false;
         _begunRender = false;
         _currentPipeline = null;
-        _uniform.View = Matrix4x4.Identity;
+        _clearColor = Colors.Transparent;
+
         _uniform.Color = Colors.White;
+        _uniform.View = Matrix4x4.Identity;
     }
 
     public void SetClearColor(Color color)
@@ -76,16 +85,48 @@ public sealed unsafe class Graphics
     public void SetViewTransform(Matrix4x4 matrix)
     {
         Uniform.View = matrix;
+        _uniformBuffer.Upload(ref _uniform);
     }
 
     public void SetColor(Color color)
     {
         Uniform.Color = color;
+        _uniformBuffer.Upload(ref _uniform);
     }
 
     internal void EnsureBeginRender()
     {
         if (_begunRender) return;
+
+        _uniform.Resolution = new Vector2(_extent.width, _extent.height);
+        _uniformBuffer.Upload(ref _uniform);
+
+        // update & bind uniform buffer descriptor set
+        _api.vkCmdBindDescriptorSets(_commandBuffer, _defaultPipeline.BindPoint, _defaultPipeline.PipelineLayout, 0, _uniformDescriptorSet);
+
+        // bind image descriptor set
+        _api.vkCmdBindDescriptorSets(_commandBuffer, _defaultPipeline.BindPoint, _defaultPipeline.PipelineLayout, 1, _textureDescriptorSet);
+
+        // bind sampler descriptor set
+        _api.vkCmdBindDescriptorSets(_commandBuffer, _defaultPipeline.BindPoint, _defaultPipeline.PipelineLayout, 2, _samplerDescriptorSet);
+
+        // dynamic set viewport 
+        VkViewport viewport = new()
+        {
+            x = 0,
+            y = _extent.height,
+            width = _extent.width,
+            height = -_extent.height,
+            minDepth = 0.0f,
+            maxDepth = 1.0f
+        };
+        _context.Api.vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+
+        // dynamic set scissor
+        VkRect2D scissor = new(VkOffset2D.Zero, _extent);
+        _context.Api.vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+
+        // begin rendering
         VkRenderingAttachmentInfo colorAttachment = new()
         {
             imageView = _imageView,
@@ -104,23 +145,6 @@ public sealed unsafe class Graphics
         };
 
         _context.Api.vkCmdBeginRendering(_commandBuffer, &renderingInfo);
-
-        // dynamic set viewport 
-        VkViewport viewport = new()
-        {
-            x = 0,
-            y = _extent.height,
-            width = _extent.width,
-            height = -_extent.height,
-            minDepth = 0.0f,
-            maxDepth = 1.0f
-        };
-        _context.Api.vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
-
-        // dynamic set scissor
-        VkRect2D scissor = new(VkOffset2D.Zero, _extent);
-        _context.Api.vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
-
         _begunRender = true;
     }
 
@@ -130,20 +154,11 @@ public sealed unsafe class Graphics
         _context.Api.vkCmdEndRendering(_commandBuffer);
     }
 
-    internal void UpdateUniformBuffer()
-    {
-        _uniformBuffer.Upload(ref _uniform);
-    }
-
     internal void SwitchGraphicsPipeline(GraphicsPipeline pipeline)
     {
         if (_currentPipeline != pipeline)
         {
             _context.Api.vkCmdBindPipeline(_commandBuffer, pipeline.BindPoint, pipeline.Pipeline);
-
-            // bind uniform / texture descriptor set
-            _api.vkCmdBindDescriptorSets(_commandBuffer, pipeline.BindPoint, pipeline.PipelineLayout, 0, _uniformDescriptorSet);
-
             _currentPipeline = pipeline;
         }
     }
@@ -152,7 +167,6 @@ public sealed unsafe class Graphics
         BufferSpan vertexBuffer, BufferSpan instanceBuffer, BufferSpan indexBuffer,
         uint indexCount, uint instanceCount, uint firstIndex = 0, int vertexOffset = 0, uint firstInstance = 0)
     {
-        UpdateUniformBuffer();
         EnsureBeginRender();
         SwitchGraphicsPipeline(pipeline);
 
@@ -193,6 +207,6 @@ public sealed unsafe class Graphics
         var instanceBufferSpan = _instanceBufferPool.AllocateUpload(instances);
         var indexBufferSpan = _indexBufferPool.AllocateUpload(indices);
 
-        Draw(_context._defaultGraphicsPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
+        Draw(_defaultPipeline, vertexBufferSpan, instanceBufferSpan, indexBufferSpan, 6, 1);
     }
 }

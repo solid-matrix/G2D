@@ -36,12 +36,12 @@ internal class MyGame : Game
     {
         Graphics.SetClearColor(Colors.CornflowerBlue);
 
-        Graphics.SetColor(new Color(1, 0.0f, 0.0f));
+        // Graphics.SetColor(new Color(1, 0.0f, 0.0f));
 
         Graphics.DrawRect(new Rect(0, 0, 40, 40), Colors.Black);
 
         var pos = Mouse.GetPosition();
-        Graphics.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.Gray);
+        Graphics.DrawRect(new Rect(pos.X - 20, pos.Y - 20, 40, 40), Colors.DarkRed);
     }
 
     protected override void Event(ref KeyboardEvent e)

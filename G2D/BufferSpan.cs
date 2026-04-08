@@ -6,24 +6,21 @@ internal sealed unsafe class BufferSpan
 {
     private readonly BufferSpanPool _pool;
 
-    internal readonly VkBuffer _buffer;
-
-    internal readonly VmaAllocation _allocation;
+    internal int _index;
 
     internal readonly ulong _offset;
 
     internal readonly ulong _size;
 
-    internal BufferSpan(BufferSpanPool pool, VkBuffer buffer, VmaAllocation allocation, ulong offset, ulong size)
+    internal BufferSpan(BufferSpanPool pool, int index, ulong offset, ulong size)
     {
         _pool = pool;
-        _buffer = buffer;
-        _allocation = allocation;
+        _index = index;
         _offset = offset;
         _size = size;
     }
 
-    public VkBuffer Buffer => _buffer;
+    public VkBuffer Buffer => _pool._buffer[_index];
 
     public ulong Offset => _offset;
 

@@ -89,3 +89,4 @@ Network Trash Folder
 *.orig
 .archive
 .qwen
+.publish

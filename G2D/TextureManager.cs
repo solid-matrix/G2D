@@ -2,7 +2,7 @@
 
 namespace G2D;
 
-internal unsafe class ImageManager : IDisposable
+internal unsafe class TextureManager : IDisposable
 {
     public const uint MaxImageCount = 65536;
 
@@ -12,7 +12,7 @@ internal unsafe class ImageManager : IDisposable
 
     private readonly VkDescriptorSet _descriptorSet;
 
-    public ImageManager(VulkanDevice device, VkDescriptorPool pool)
+    public TextureManager(VulkanDevice device, VkDescriptorPool pool)
     {
         _device = device;
 

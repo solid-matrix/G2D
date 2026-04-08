@@ -66,7 +66,7 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         _images = [];
         _imageViews = [];
 
-        var actualExtent = _window.GetClientExtent();
+        var actualExtent = _window.IsMinimized() ? Extent2I.Zero : _window.GetExtent();
         if (actualExtent.Area == 0) return;
 
         var capabilities = _device.Instance.GetPhysicalDeviceSurfaceCapabilities(_device.PhysicalDevice, _surface);

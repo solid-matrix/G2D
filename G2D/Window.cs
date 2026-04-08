@@ -51,9 +51,21 @@ public sealed unsafe class Window : IDisposable
         SDL3.SDL_MinimizeWindow(_handle);
     }
 
+    public bool IsMinimized()
+    {
+        var flags = SDL3.SDL_GetWindowFlags(_handle);
+        return (flags & SDL_WindowFlags.SDL_WINDOW_MINIMIZED) != 0;
+    }
+
     public void Maximize()
     {
         SDL3.SDL_MaximizeWindow(_handle);
+    }
+
+    public bool IsMaximized()
+    {
+        var flags = SDL3.SDL_GetWindowFlags(_handle);
+        return (flags & SDL_WindowFlags.SDL_WINDOW_MAXIMIZED) != 0;
     }
 
     public void Restore()
@@ -61,65 +73,20 @@ public sealed unsafe class Window : IDisposable
         SDL3.SDL_RestoreWindow(_handle);
     }
 
-    public Extent2I GetClientExtent()
+    public Extent2I GetExtent()
     {
         int w, h;
-
-        var flags = SDL3.SDL_GetWindowFlags(_handle);
-        if ((flags & SDL_WindowFlags.SDL_WINDOW_MINIMIZED) != 0) return new Extent2I(0, 0);
-
         SDL3.SDL_GetWindowSize(_handle, &w, &h);
         return new Extent2I(w, h);
     }
 
-    public Vector2I GetClientPosition()
-    {
-        int top, left, bottom, right;
-        SDL3.SDL_GetWindowBordersSize(_handle, &top, &left, &bottom, &right);
-        int x, y;
-        SDL3.SDL_GetWindowPosition(_handle, &x, &y);
-
-        return new Vector2I(x + left, y + top);
-    }
-
-    public RectI GetClientRect()
-    {
-        int top, left, bottom, right;
-        SDL3.SDL_GetWindowBordersSize(_handle, &top, &left, &bottom, &right);
-        int x, y;
-        SDL3.SDL_GetWindowPosition(_handle, &x, &y);
-        int w, h;
-        SDL3.SDL_GetWindowSize(_handle, &w, &h);
-        return new RectI(x + left, y + top, w, h);
-    }
-
-    public Vector2I GetWindowPosition()
+    public Vector2I GetPosition()
     {
         int x, y;
         SDL3.SDL_GetWindowPosition(_handle, &x, &y);
         return new Vector2I(x, y);
     }
 
-    public Extent2I GetWindowExtent()
-    {
-        int top, left, bottom, right;
-        SDL3.SDL_GetWindowBordersSize(_handle, &top, &left, &bottom, &right);
-        int w, h;
-        SDL3.SDL_GetWindowSize(_handle, &w, &h);
-
-        return new Extent2I(w + left + right, h + top + bottom);
-    }
-
-    public RectI GetWindowRect()
-    {
-        int top, left, bottom, right;
-        SDL3.SDL_GetWindowBordersSize(_handle, &top, &left, &bottom, &right);
-        int x, y;
-        SDL3.SDL_GetWindowPosition(_handle, &x, &y);
-        int w, h;
-        SDL3.SDL_GetWindowSize(_handle, &w, &h);
-        return new RectI(x, y, w + left + right, h + top + bottom);
-    }
 
     public void Move(Vector2I location)
     {
