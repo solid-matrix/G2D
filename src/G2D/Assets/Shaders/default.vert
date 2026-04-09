@@ -44,9 +44,9 @@ mat3 buildModelMatrix(vec2 translation, float rotation, vec2 scale, vec2 origin,
 mat4 buildProjectionMatrix(vec2 res) {
     return mat4(
     2.0 / res.x, 0.0, 0.0, 0.0,
-    0.0, -2.0 / res.y, 0.0, 0.0,
+    0.0, 2.0 / res.y, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
-    -1.0, 1.0, 0.0, 1.0);
+    -1.0, -1.0, 0.0, 1.0);
 }
 
 /* CUSTOM-BEGIN */

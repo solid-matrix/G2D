@@ -18,9 +18,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\G2D.Mathematics\G2D.Mathematics.csproj"/>
+        <!--        <ProjectReference Include="..\G2D.Mathematics\G2D.Mathematics.csproj"/>-->
     </ItemGroup>
-    
+
     <ItemGroup>
         <EmbeddedResource Include="Assets\**"/>
     </ItemGroup>

@@ -118,17 +118,14 @@ public abstract unsafe class Game
     internal void InternalIteration()
     {
         Timer.WaitTargetFps();
-        Timer.Step();
-        Update(Timer.GetDeltaTime());
-
-
         GraphicsContext.RenderFrame(session =>
         {
             Graphics.BeginSession(session);
             Graphics.Uniform.MousePosition = Mouse.GetPosition();
             Graphics.Uniform.Time = Timer.GetTimeF();
 
-
+            Timer.Step();
+            Update(Timer.GetDeltaTime());
             Draw();
 
             Graphics.EndSession();

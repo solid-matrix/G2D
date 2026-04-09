@@ -6,7 +6,7 @@ namespace G2D;
 
 public sealed unsafe class GraphicsContext : IDisposable
 {
-    internal const uint MaxFrameCountInFlight = 2;
+    internal const uint MaxFrameCountInFlight = 3;
 
     internal const uint PushConstantRange = 128;
 
@@ -296,9 +296,9 @@ public sealed unsafe class GraphicsContext : IDisposable
         VkViewport viewport = new()
         {
             x = 0,
-            y = _swapchain.Extent.height,
+            y = 0,
             width = _swapchain.Extent.width,
-            height = -_swapchain.Extent.height,
+            height = _swapchain.Extent.height,
             minDepth = 0.0f,
             maxDepth = 1.0f
         };
