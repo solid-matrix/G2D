@@ -4,6 +4,8 @@ namespace G2D;
 
 internal sealed unsafe class BufferSpanPool : IDisposable
 {
+    private const uint UnitBufferSize = 1048576;
+
     private readonly VulkanDevice _device;
 
     private readonly VkBufferUsageFlags _bufferUsage;
@@ -22,7 +24,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     private ulong _sizeCount;
 
-    public BufferSpanPool(VulkanDevice device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage, ulong initialCapacity = 0)
+    public BufferSpanPool(VulkanDevice device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
     {
         _device = device;
         _bufferUsage = bufferUsage;
@@ -34,29 +36,33 @@ internal sealed unsafe class BufferSpanPool : IDisposable
         _allocation = [];
         _addr = [];
         _sizeCount = 0;
-
-        if (initialCapacity > 0) AddBuffer(initialCapacity);
     }
 
     public void Dispose()
     {
-        for (var i = 0; i < _buffer.Count; i++) DestroyBuffer(i);
+        for (var i = 0; i < _buffer.Count; i++) RemoveBuffer(i);
     }
 
     public BufferSpan Allocate(ulong size)
     {
         _sizeCount += size;
+        ulong step;
 
         for (var i = 0; i < _buffer.Count; i++)
             if (_size[i] - _occupy[i] >= size)
             {
                 var span = new BufferSpan(this, i, _occupy[i], size);
-                _occupy[i] += size;
+
+                step = _bufferUsage == VkBufferUsageFlags.UniformBuffer ? (size + 64 - 1) / 64 * 64 : size;
+                _occupy[i] += step;
+
                 return span;
             }
 
-        var bufferIndex = AddBuffer(size);
-        _occupy[bufferIndex] += size;
+        var bufferIndex = AddBuffer(size > UnitBufferSize ? size : UnitBufferSize);
+
+        step = _bufferUsage == VkBufferUsageFlags.UniformBuffer ? (size + 64 - 1) / 64 * 64 : size;
+        _occupy[bufferIndex] += step;
 
         return new BufferSpan(this, bufferIndex, 0, size);
     }
@@ -74,7 +80,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
         }
 
         // if more than one buffer exist, then clear all and create a larger one
-        for (var i = 0; i < _buffer.Count; i++) DestroyBuffer(i);
+        for (var i = 0; i < _buffer.Count; i++) RemoveBuffer(i);
 
         _buffer.Clear();
         _allocation.Clear();
@@ -126,7 +132,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
         return _buffer.Count - 1;
     }
 
-    private void DestroyBuffer(int i)
+    private void RemoveBuffer(int i)
     {
         Vma.vmaUnmapMemory(_device.Allocator, _allocation[i]);
         Vma.vmaDestroyBuffer(_device.Allocator, _buffer[i], _allocation[i]);

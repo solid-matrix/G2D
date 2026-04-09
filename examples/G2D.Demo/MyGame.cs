@@ -1,3 +1,4 @@
+using System.Numerics;
 using Vortice.Mathematics;
 
 namespace G2D.Demo;
@@ -20,13 +21,13 @@ internal class MyGame : Game
         config.ApplicationName = "G2D Game";
         config.WindowTitle = "G2D Game";
         config.WindowResizable = true;
-        config.VSync = false;
-        config.TargetFps = 0;
+        config.VSync = true;
+        // config.TargetFps = 0;
     }
 
     protected override void Load()
     {
-        _texture = LoadTexture(Embedded.GetBytes("Assets/Images/logo.png"));
+        _texture = LoadTexture(Embedded.GetBytes("Assets/Images/atlas.png"));
 
         Window.HideCursor();
         Graphics.ClearColor4 = Colors.White;
@@ -37,28 +38,25 @@ internal class MyGame : Game
     {
     }
 
+    private int _count;
+
     protected override void Update(double dt)
     {
         _fpsCounter.Update();
+
+        _count = (_count + 1) % 60;
     }
 
     protected override void Draw()
     {
-        var random = new Random(DateTimeOffset.UtcNow.Microsecond);
-        var width = (int)Graphics.Viewport.Width;
-        var height = (int)Graphics.Viewport.Height;
+        var pos = Graphics.Viewport.ToVector2() / 2 - new Vector2(80, 80) / 2;
 
-        for (var j = 0; j < 1; j++)
-        for (var i = 0; i < 40960; i++)
-        {
-            var x = random.Next(width);
-            var y = random.Next(height);
-            var r = random.NextSingle() * MathF.PI * 2;
-            var s = random.NextSingle();
-
-            Graphics.Draw(_texture, Sampler.NearestRepeat, x, y, r, s, s);
-            Graphics.FlushUnitRectDraw();
-        }
+        if (_count < 20)
+            Graphics.Draw(_texture, new Rect(20, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
+        else if (_count < 40)
+            Graphics.Draw(_texture, new Rect(20, 20, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
+        else
+            Graphics.Draw(_texture, new Rect(40, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
     }
 
     protected override void Event(ref KeyboardEvent e)

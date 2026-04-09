@@ -57,6 +57,6 @@ void main() {
     gl_Position = vec4(t3.xy, 0, 1);
 
     f_color = v_color * i_color * u_color;
-    f_tex_coords = v_tex_coords;// TODO, adjust by i_un_offset and  i_uv_offset
+    f_tex_coords = v_tex_coords * i_uv_scale + i_uv_offset;
     f_tsi = i_tsi;
 }

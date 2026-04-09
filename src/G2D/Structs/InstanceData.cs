@@ -34,18 +34,35 @@ internal unsafe struct InstanceData
         OriginOffset = o;
         Shear = k;
         Color4 = color4;
+        TextureScale = Vector2.One;
+        TextureOffset = Vector2.Zero;
         TextureSamplerIndices[0] = 0;
     }
 
-    public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4, uint textureIndex, uint samplerIndex)
+    public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4, Texture texture, Sampler sampler)
     {
         Translation = t;
         Rotation = r;
-        Scale = s;
+        Scale = s * texture.Size.ToVector2();
         OriginOffset = o;
         Shear = k;
         Color4 = color4;
-        SetTextureSampler(0, textureIndex, samplerIndex);
+        TextureScale = Vector2.One;
+        TextureOffset = Vector2.Zero;
+        SetTextureSampler(0, (uint)texture.Index, (uint)sampler);
+    }
+
+    public InstanceData(Rect quad, Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4, Texture texture, Sampler sampler)
+    {
+        Translation = t;
+        Rotation = r;
+        Scale = s * quad.Size.ToVector2();
+        OriginOffset = o;
+        Shear = k;
+        Color4 = color4;
+        TextureScale = quad.Size.ToVector2() / texture.Size.ToVector2();
+        TextureOffset = quad.Position / texture.Size.ToVector2();
+        SetTextureSampler(0, (uint)texture.Index, (uint)sampler);
     }
 
 
