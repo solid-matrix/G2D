@@ -4,7 +4,7 @@ public enum GraphicsPipelineColorBlendOption
 {
     Opaque,
     Premultiplied,
-    Alpha,
+    StraightAlpha,
     Add,
     SoftAdd,
     Multiply

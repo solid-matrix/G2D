@@ -26,7 +26,7 @@ internal unsafe struct InstanceData
 
     private fixed uint TextureSamplerIndices[15];
 
-    public InstanceData(Vector2 t, Vector2 s, float r, Vector2 o, Vector2 k, Vector4 color4)
+    public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4)
     {
         Translation = t;
         Rotation = r;
@@ -37,7 +37,7 @@ internal unsafe struct InstanceData
         TextureSamplerIndices[0] = 0;
     }
 
-    public InstanceData(Vector2 t, Vector2 s, float r, Vector2 o, Vector2 k, Vector4 color4, uint textureIndex, uint samplerIndex)
+    public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4, uint textureIndex, uint samplerIndex)
     {
         Translation = t;
         Rotation = r;
@@ -52,20 +52,6 @@ internal unsafe struct InstanceData
     public void SetTextureSampler(int slot, uint textureId, uint samplerId)
     {
         TextureSamplerIndices[slot] = (textureId << 16) | (samplerId & 0xffff);
-    }
-
-    internal Matrix3x3 BuildModelMatrix(Vector2 translation, float rotation, Vector2 scale, Vector2 origin, Vector2 shear)
-    {
-        var pivotMat = new Matrix3x3(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, -origin.X, -origin.Y, 1.0f);
-        var scaleMat = new Matrix3x3(scale.X, 0.0f, 0.0f, 0.0f, scale.Y, 0.0f, 0.0f, 0.0f, 1.0f);
-        var shearMat = new Matrix3x3(1.0f, shear.Y, 0.0f, shear.X, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-        var rotMat = new Matrix3x3(MathF.Cos(rotation), MathF.Sin(rotation), 0.0f, -MathF.Sin(rotation), MathF.Cos(rotation), 0.0f, 0.0f, 0.0f, 1.0f);
-        var transMat = new Matrix3x3(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, translation.X, translation.Y, 1.0f);
-
-        return Matrix3x3.Identity;
-
-        // TODO
-        // return transMat * rotMat * shearMat * scaleMat * pivotMat;
     }
 
     public static VkVertexInputBindingDescription[] GetBindingDescriptions()

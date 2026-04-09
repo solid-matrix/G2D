@@ -150,8 +150,6 @@ internal unsafe class TextureManager : IDisposable
 
     private (VkImage, VmaAllocation, Size) InternalCreateTextureFromRgbaData(ReadOnlySpan<byte> data, uint width, uint height)
     {
-        Console.WriteLine($"{width} {height} {data.Length}");
-
         // allocate staging buffer
         var stagingBufferInfo = new VkBufferCreateInfo
         {
@@ -172,8 +170,6 @@ internal unsafe class TextureManager : IDisposable
         // Upload data
         fixed (void* pData = data)
         {
-            Console.WriteLine((nint)pData);
-
             Vma.vmaCopyMemoryToAllocation(_device.Allocator, pData, stagingAllocation, 0, (uint)data.Length);
         }
 

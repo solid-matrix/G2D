@@ -1,7 +1,9 @@
 ﻿using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace G2D;
 
+[StructLayout(LayoutKind.Sequential)]
 public readonly record struct Color32(byte R, byte G, byte B, byte A = 255)
 {
     public Color32(Vector4 vector) : this(
@@ -13,7 +15,11 @@ public readonly record struct Color32(byte R, byte G, byte B, byte A = 255)
     {
     }
 
-    public Color32(Color color) : this((byte)(color.R * 255), (byte)(color.G * 255), (byte)(color.B * 255), (byte)(color.A * 255))
+    public Color32(Color4 color4) : this((byte)(color4.R * 255), (byte)(color4.G * 255), (byte)(color4.B * 255), (byte)(color4.A * 255))
+    {
+    }
+
+    public Color32() : this(0, 0, 0, 0)
     {
     }
 
@@ -62,5 +68,15 @@ public readonly record struct Color32(byte R, byte G, byte B, byte A = 255)
     public static implicit operator Vector4(Color32 c)
     {
         return new Vector4(c.R / 255f, c.G / 255f, c.B / 255f, c.A / 255f);
+    }
+
+    public static explicit operator Color32(Vector4 v)
+    {
+        return new Color32(v);
+    }
+
+    public static implicit operator Color4(Color32 c)
+    {
+        return new Color4(c);
     }
 }

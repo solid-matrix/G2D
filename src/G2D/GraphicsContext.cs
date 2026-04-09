@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using Vortice.Mathematics;
 using Vortice.Vulkan;
 
@@ -237,13 +238,21 @@ public sealed unsafe class GraphicsContext : IDisposable
     {
         if (_window.IsMinimized()) return;
 
+        var sw1 = Stopwatch.StartNew();
         // wait for last submit
         Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, ulong.MaxValue);
 
+        // Console.WriteLine($"sw1 {sw1.Elapsed.TotalMilliseconds} ms");
+
         Api.vkResetFences(_submitFences[_currentFrame]);
+
+        var sw2 = Stopwatch.StartNew();
 
         // acquire next image
         var result = Api.vkAcquireNextImageKHR(_swapchain.Swapchain, ulong.MaxValue, _acquireSemaphores[_currentFrame], VkFence.Null, out var imageIndex);
+
+        // Console.WriteLine($"sw2 {sw2.Elapsed.TotalMilliseconds} ms");
+
         if (result is VkResult.ErrorOutOfDateKHR)
         {
             _swapchain.Recreate();

@@ -80,7 +80,7 @@ public unsafe class Graphics
         _currentPipeline = null;
     }
 
-    internal void FlushUnitRectDraw()
+    public void FlushUnitRectDraw()
     {
         if (_currentPipeline == null) SwitchGraphicsPipeline(DefaultPipeline);
         if (_instances.Count == 0) return;
@@ -127,14 +127,24 @@ public unsafe class Graphics
 
     public void Draw(Rect rect, Color4 color4)
     {
-        var instance = new InstanceData(rect.Position, rect.Size.ToVector2(), 0, Vector2.Zero, Vector2.Zero, color4);
+        var instance = new InstanceData(rect.Position, 0, rect.Size.ToVector2(), Vector2.Zero, Vector2.Zero, color4);
 
         _instances.Add(instance);
     }
 
-    public void Draw(Texture texture, Vector2 position)
+    public void Draw(Texture texture, Sampler sampler, Vector2 position, float rotation, Vector2 scale, Vector2 origin, Vector2 shear)
     {
-        var instance = new InstanceData(position, texture.Size.ToVector2(), 0, Vector2.Zero, Vector2.Zero, Colors.White, (uint)texture.Index, (uint)Sampler.NearestRepeat);
+        var instance = new InstanceData(position, rotation, scale * texture.Size.ToVector2(), origin, shear, Colors.White, (uint)texture.Index, (uint)sampler);
         _instances.Add(instance);
+    }
+
+    public void Draw(Texture texture, Sampler sampler, Vector2 position)
+    {
+        Draw(texture, sampler, position, 0, Vector2.One, Vector2.Zero, Vector2.Zero);
+    }
+
+    public void Draw(Texture texture, Sampler sampler = Sampler.NearestRepeat, float x = 0, float y = 0, float r = 0, float sx = 1, float sy = 1, float ox = 0, float oy = 0, float kx = 0, float ky = 0)
+    {
+        Draw(texture, sampler, new Vector2(x, y), r, new Vector2(sx, sy), new Vector2(ox, oy), new Vector2(kx, ky));
     }
 }

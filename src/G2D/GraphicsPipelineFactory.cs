@@ -84,7 +84,7 @@ internal unsafe class GraphicsPipelineFactory
         colorWriteMask = VkColorComponentFlags.All
     };
 
-    private static readonly VkPipelineColorBlendAttachmentState AlphaBlendColorBlend = new()
+    private static readonly VkPipelineColorBlendAttachmentState StraightAlphaBlendColorBlend = new()
     {
         blendEnable = true,
         srcColorBlendFactor = VkBlendFactor.SrcAlpha,
@@ -249,7 +249,7 @@ internal unsafe class GraphicsPipelineFactory
         VkPipelineColorBlendStateCreateInfo colorBlendStateInfo;
         fixed (VkPipelineColorBlendAttachmentState* pOpaqueColorBlend = &OpaqueColorBlend)
         fixed (VkPipelineColorBlendAttachmentState* pPremultipliedColorBlend = &PremultipliedColorBlend)
-        fixed (VkPipelineColorBlendAttachmentState* pAlphaBlendColorBlend = &AlphaBlendColorBlend)
+        fixed (VkPipelineColorBlendAttachmentState* pStraightAlphaBlendColorBlend = &StraightAlphaBlendColorBlend)
         fixed (VkPipelineColorBlendAttachmentState* pAddBlendColorBlend = &AddBlendColorBlend)
         fixed (VkPipelineColorBlendAttachmentState* pSoftAddBlendColorBlend = &SoftAddBlendColorBlend)
         fixed (VkPipelineColorBlendAttachmentState* pMultiplyBlendColorBlend = &MultiplyBlendColorBlend)
@@ -263,7 +263,7 @@ internal unsafe class GraphicsPipelineFactory
                 {
                     GraphicsPipelineColorBlendOption.Opaque => pOpaqueColorBlend,
                     GraphicsPipelineColorBlendOption.Premultiplied => pPremultipliedColorBlend,
-                    GraphicsPipelineColorBlendOption.Alpha => pAlphaBlendColorBlend,
+                    GraphicsPipelineColorBlendOption.StraightAlpha => pStraightAlphaBlendColorBlend,
                     GraphicsPipelineColorBlendOption.Add => pAddBlendColorBlend,
                     GraphicsPipelineColorBlendOption.SoftAdd => pSoftAddBlendColorBlend,
                     GraphicsPipelineColorBlendOption.Multiply => pMultiplyBlendColorBlend,

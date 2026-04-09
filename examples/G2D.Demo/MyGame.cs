@@ -1,4 +1,3 @@
-using System.Numerics;
 using Vortice.Mathematics;
 
 namespace G2D.Demo;
@@ -27,8 +26,7 @@ internal class MyGame : Game
 
     protected override void Load()
     {
-        Console.WriteLine($"EnableDebug = {EnableDebug}");
-        _texture = LoadTexture(Embedded.GetBytes("Assets/Images/background-pattern.png"));
+        _texture = LoadTexture(Embedded.GetBytes("Assets/Images/logo.png"));
 
         Window.HideCursor();
         Graphics.ClearColor4 = Colors.White;
@@ -47,28 +45,20 @@ internal class MyGame : Game
     protected override void Draw()
     {
         var random = new Random(DateTimeOffset.UtcNow.Microsecond);
-
         var width = (int)Graphics.Viewport.Width;
         var height = (int)Graphics.Viewport.Height;
 
-
-        for (var i = 0; i < 50000; i++)
+        for (var j = 0; j < 1; j++)
+        for (var i = 0; i < 40960; i++)
         {
-            var x1 = random.Next(width);
-            var x2 = random.Next(width);
-            var y1 = random.Next(height);
-            var y2 = random.Next(height);
-            if (x1 > x2) (x1, x2) = (x2, x1);
-            if (y1 > y2) (y1, y2) = (y2, y1);
+            var x = random.Next(width);
+            var y = random.Next(height);
+            var r = random.NextSingle() * MathF.PI * 2;
+            var s = random.NextSingle();
 
-            var r = random.Next(256);
-            var g = random.Next(256);
-            var b = random.Next(256);
-
-            Graphics.Draw(new Rect(x1, y1, x2 - x1, y2 - y1), new Color(r, g, b).ToColor4());
+            Graphics.Draw(_texture, Sampler.NearestRepeat, x, y, r, s, s);
+            Graphics.FlushUnitRectDraw();
         }
-
-        Graphics.Draw(_texture, new Vector2(200, 200));
     }
 
     protected override void Event(ref KeyboardEvent e)

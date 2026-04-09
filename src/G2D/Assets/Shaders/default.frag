@@ -1,4 +1,5 @@
 #version 450 core
+#extension GL_EXT_nonuniform_qualifier : enable
 
 // input
 layout (location = 0) in vec2 f_tex_coords;
@@ -16,14 +17,9 @@ layout (row_major, set = 0, binding = 0) uniform UniformBlock {
     vec2 u_mouse;
     float u_time;
 };
-layout (set = 1, binding = 0) uniform texture2D u_textures[65536];
+layout (set = 1, binding = 0) uniform texture2D u_textures[];
 layout (set = 2, binding = 0) uniform sampler u_samplers[8];
 
-/* CUSTOM-BEGIN */
-vec4 effect(vec4 color, texture2D tex, vec2 tex_coords, vec2 screen_coords) {
-    return vec4(0.0);
-}
-/* CUSTOM-END*/
 
 void main() {
     uint tid = f_tsi[0] >> 16;
