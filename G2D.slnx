@@ -1,6 +1,5 @@
 <Solution>
   <Project Path="examples/G2D.Demo/G2D.Demo.csproj" />
-  <Project Path="external/Vortice.Mathematics/src/Vortice.Mathematics/Vortice.Mathematics.csproj" />
   <Project Path="src/G2D.Mathematics/G2D.Mathematics.csproj" />
   <Project Path="src/G2D/G2D.csproj" />
 </Solution>
