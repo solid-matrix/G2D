@@ -14,8 +14,7 @@ layout (location = 7) in vec2 i_shear;
 layout (location = 8) in vec4 i_color;
 layout (location = 9) in vec2 i_uv_scale;
 layout (location = 10) in vec2 i_uv_offset;
-layout (location = 11) in uint i_is_texture;
-layout (location = 12) in uint i_tsi[14];
+layout (location = 11) in uint i_tsi[15];
 
 // uniform
 layout (set = 0, binding = 0) uniform UniformBlock {
@@ -29,8 +28,7 @@ layout (set = 0, binding = 0) uniform UniformBlock {
 // output
 layout (location = 0) out vec2 f_tex_coords;
 layout (location = 1) out vec4 f_color;
-layout (location = 2) flat out uint f_is_texture;
-layout (location = 3) flat out uint f_tsi[14];
+layout (location = 2) flat out uint f_tsi[15];
 
 mat3 buildModelMatrix(vec2 translation, float rotation, vec2 scale, vec2 origin, vec2 shear) {
     mat3 pivotMat = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, -origin.x, -origin.y, 1.0);
@@ -41,27 +39,24 @@ mat3 buildModelMatrix(vec2 translation, float rotation, vec2 scale, vec2 origin,
     return transMat * rotMat * shearMat * scaleMat * pivotMat;
 }
 
-mat4 buildProjectionMatrix(vec2 res) {
-    return mat4(
-    2.0 / res.x, 0.0, 0.0, 0.0,
-    0.0, 2.0 / res.y, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    -1.0, -1.0, 0.0, 1.0);
+mat3 buildProjectionMatrix(vec2 res) {
+    return mat3(
+    2.0 / res.x, 0.0, 0.0,
+    0.0, 2.0 / res.y, 0.0,
+    -1.0, -1.0, 1.0);
 }
-
-/* CUSTOM-BEGIN */
-vec4 position(vec2 model_pos, mat4 view, mat4 proj) {
-    return proj * view * vec4(model_pos, 0.0, 1.0);
-}
-/* CUSTOM-END*/
 
 void main() {
     mat3 model = buildModelMatrix(i_translation, i_rotation, i_scale, i_origin, i_shear);
-    vec3 m_pos = model * vec3(v_pos, 1.0f);
-    mat4 proj = buildProjectionMatrix(u_res);
-    gl_Position = position(m_pos.xy, u_view, proj);
+    mat3 proj = buildProjectionMatrix(u_res);
+
+    vec3 t1 =  model * vec3(v_pos, 1);
+    vec4 t2 = u_view * vec4(t1.xy, 0, 1);
+    vec3 t3 = proj * vec3(t2.xy, 1);
+
+    gl_Position = vec4(t3.xy, 0, 1);
+
     f_color = v_color * i_color * u_color;
     f_tex_coords = v_tex_coords;// TODO, adjust by i_un_offset and  i_uv_offset
-    f_is_texture = i_is_texture;
     f_tsi = i_tsi;
 }

@@ -24,11 +24,9 @@ internal unsafe struct InstanceData
 
     public Vector2 TextureOffset = Vector2.Zero;
 
-    public uint IsTexture = 0;
+    private fixed uint TextureSamplerIndices[15];
 
-    private fixed uint TextureSamplerIndices[14];
-
-    public InstanceData(Vector2 t, Vector2 s, float r, Vector2 o, Vector2 k, Vector4 color4, bool isTexture)
+    public InstanceData(Vector2 t, Vector2 s, float r, Vector2 o, Vector2 k, Vector4 color4)
     {
         Translation = t;
         Rotation = r;
@@ -36,8 +34,20 @@ internal unsafe struct InstanceData
         OriginOffset = o;
         Shear = k;
         Color4 = color4;
-        IsTexture = isTexture ? 1u : 0u;
+        TextureSamplerIndices[0] = 0;
     }
+
+    public InstanceData(Vector2 t, Vector2 s, float r, Vector2 o, Vector2 k, Vector4 color4, uint textureIndex, uint samplerIndex)
+    {
+        Translation = t;
+        Rotation = r;
+        Scale = s;
+        OriginOffset = o;
+        Shear = k;
+        Color4 = color4;
+        SetTextureSampler(0, textureIndex, samplerIndex);
+    }
+
 
     public void SetTextureSampler(int slot, uint textureId, uint samplerId)
     {
@@ -136,105 +146,105 @@ internal unsafe struct InstanceData
                 binding = 1,
                 location = 11,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(IsTexture))
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 0 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 12,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 0 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 1 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 13,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 1 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 2 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 14,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 2 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 3 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 15,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 3 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 4 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 16,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 4 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 5 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 17,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 5 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 6 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 18,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 6 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 7 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 19,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 7 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 8 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 20,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 8 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 9 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 21,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 9 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 10 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 22,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 10 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 11 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 23,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 11 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 12 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 24,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 12 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 13 * (uint)sizeof(uint)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 25,
                 format = VkFormat.R32Uint,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 13 * (uint)sizeof(uint)
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(TextureSamplerIndices)) + 14 * (uint)sizeof(uint)
             }
         ];
     }

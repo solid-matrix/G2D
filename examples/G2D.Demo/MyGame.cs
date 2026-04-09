@@ -52,21 +52,21 @@ internal class MyGame : Game
         var height = (int)Graphics.Viewport.Height;
 
 
-        // for (var i = 0; i < 50000; i++)
-        // {
-        //     var x1 = random.Next(width);
-        //     var x2 = random.Next(width);
-        //     var y1 = random.Next(height);
-        //     var y2 = random.Next(height);
-        //     if (x1 > x2) (x1, x2) = (x2, x1);
-        //     if (y1 > y2) (y1, y2) = (y2, y1);
-        //
-        //     var r = random.Next(256);
-        //     var g = random.Next(256);
-        //     var b = random.Next(256);
-        //
-        //     Graphics.Draw(new Rect(x1, y1, x2 - x1, y2 - y1), new Color(r, g, b).ToColor4());
-        // }
+        for (var i = 0; i < 50000; i++)
+        {
+            var x1 = random.Next(width);
+            var x2 = random.Next(width);
+            var y1 = random.Next(height);
+            var y2 = random.Next(height);
+            if (x1 > x2) (x1, x2) = (x2, x1);
+            if (y1 > y2) (y1, y2) = (y2, y1);
+
+            var r = random.Next(256);
+            var g = random.Next(256);
+            var b = random.Next(256);
+
+            Graphics.Draw(new Rect(x1, y1, x2 - x1, y2 - y1), new Color(r, g, b).ToColor4());
+        }
 
         Graphics.Draw(_texture, new Vector2(200, 200));
     }

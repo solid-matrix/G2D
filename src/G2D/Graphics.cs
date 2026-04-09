@@ -127,18 +127,14 @@ public unsafe class Graphics
 
     public void Draw(Rect rect, Color4 color4)
     {
-        var instance = new InstanceData(rect.Position, rect.Size.ToVector2(), 0, Vector2.Zero, Vector2.Zero, color4, false);
+        var instance = new InstanceData(rect.Position, rect.Size.ToVector2(), 0, Vector2.Zero, Vector2.Zero, color4);
 
         _instances.Add(instance);
     }
 
     public void Draw(Texture texture, Vector2 position)
     {
-        var instance = new InstanceData(position, texture.Size.ToVector2(), 0, Vector2.Zero, Vector2.Zero, Colors.White, true);
-
-        instance.IsTexture = 1;
-        instance.SetTextureSampler(0, (uint)texture.Index, (uint)Sampler.NearestRepeat);
-
+        var instance = new InstanceData(position, texture.Size.ToVector2(), 0, Vector2.Zero, Vector2.Zero, Colors.White, (uint)texture.Index, (uint)Sampler.NearestRepeat);
         _instances.Add(instance);
     }
 }

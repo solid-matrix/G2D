@@ -3,8 +3,7 @@
 // input
 layout (location = 0) in vec2 f_tex_coords;
 layout (location = 1) in vec4 f_color;
-layout (location = 2) flat in uint f_is_texture;
-layout (location = 3) flat in uint f_tsi[14];
+layout (location = 2) flat in uint f_tsi[15];
 
 // output
 layout (location = 0) out vec4 o_color;
@@ -27,12 +26,8 @@ vec4 effect(vec4 color, texture2D tex, vec2 tex_coords, vec2 screen_coords) {
 /* CUSTOM-END*/
 
 void main() {
-    if (f_is_texture == 1u){
-        uint tid = f_tsi[0] >> 16;
-        uint sid = f_tsi[0] & 0xFFFFU;
-        vec4 c = texture(sampler2D(u_textures[tid], u_samplers[sid]), f_tex_coords);
-        o_color = vec4(c.rgb*c.a, c.a) * f_color;
-    } else {
-        o_color = f_color;
-    }
+    uint tid = f_tsi[0] >> 16;
+    uint sid = f_tsi[0] & 0xFFFFU;
+    vec4 c = texture(sampler2D(u_textures[tid], u_samplers[sid]), f_tex_coords);
+    o_color = vec4(c.rgb*c.a, c.a) * f_color;
 }

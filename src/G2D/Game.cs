@@ -33,7 +33,7 @@ public abstract unsafe class Game
 
     public Texture LoadTexture(byte[] raw)
     {
-        return GraphicsContext._textureManager.CreateTextureFromData(raw);
+        return GraphicsContext._textureManager.CreateTextureFromRaw(raw);
     }
 
     internal void Initialize()

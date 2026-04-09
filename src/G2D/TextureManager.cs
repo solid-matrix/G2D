@@ -31,6 +31,8 @@ internal unsafe class TextureManager : IDisposable
         _descriptorSetLayout = CreateDescriptorSetLayout(device);
 
         _descriptorSet = AllocateDescriptorSet(device, _descriptorSetLayout, pool);
+
+        Create1PixelWhiteTexture();
     }
 
     public VkDescriptorSetLayout DescriptorSetLayout => _descriptorSetLayout;
@@ -49,10 +51,27 @@ internal unsafe class TextureManager : IDisposable
         _device.Api.vkDestroyDescriptorSetLayout(_descriptorSetLayout);
     }
 
-    public Texture CreateTextureFromData(byte[] raw)
+    private void Create1PixelWhiteTexture()
+    {
+        byte[] data = [255, 255, 255, 255];
+        var texture = CreateTextureFromRgba(data, 1, 1);
+        if (texture.Index != 0) throw new Exception("failed to create 1 pixel white texture at 0");
+    }
+
+    internal Texture CreateTextureFromRaw(ReadOnlySpan<byte> raw)
     {
         var (image, allocation, extent) = InternalCreateTextureFromRawImage(raw);
+        return CreateTexture(image, allocation, extent);
+    }
 
+    internal Texture CreateTextureFromRgba(ReadOnlySpan<byte> data, uint width, uint height)
+    {
+        var (image, allocation, extent) = InternalCreateTextureFromRgbaData(data, width, height);
+        return CreateTexture(image, allocation, extent);
+    }
+
+    internal Texture CreateTexture(VkImage image, VmaAllocation allocation, Size extent)
+    {
         var info = new VkImageViewCreateInfo
         {
             image = image,
@@ -89,7 +108,8 @@ internal unsafe class TextureManager : IDisposable
         return new Texture(this, i);
     }
 
-    public void DestroyTexture(Texture texture)
+
+    internal void DestroyTexture(Texture texture)
     {
         var i = texture.Index;
         _device.Api.vkDestroyImageView(_imagesView[i]);
@@ -101,27 +121,41 @@ internal unsafe class TextureManager : IDisposable
         _allocation[i] = VmaAllocation.Null;
     }
 
-    public (VkImage, VmaAllocation, Size) InternalCreateTextureFromRawImage(byte[] raw)
+    private (VkImage, VmaAllocation, Size) InternalCreateTextureFromRawImage(ReadOnlySpan<byte> raw)
     {
         SDL_Surface* surface;
+
         fixed (byte* rawPtr = raw)
         {
             var stream = SDL3.SDL_IOFromMem((nint)rawPtr, (uint)raw.Length);
             surface = SDL3_image.IMG_Load_IO(stream, true);
+            if (surface == null) throw new Exception("failed to load image");
             if (surface->format != SDL3.SDL_PIXELFORMAT_RGBA32)
             {
                 var converted = SDL3.SDL_ConvertSurface(surface, SDL3.SDL_PIXELFORMAT_RGBA32);
                 SDL3.SDL_DestroySurface(surface);
+
+                if (converted == null) throw new Exception("failed to convert pixel format");
                 surface = converted;
             }
         }
 
-        uint width = (uint)surface->w, height = (uint)surface->h, size = (uint)(surface->pitch * surface->h);
+        var (image, allocation, size) = InternalCreateTextureFromRgbaData(new ReadOnlySpan<byte>((void*)surface->pixels, surface->h * surface->pitch), (uint)surface->w, (uint)surface->h);
+
+        SDL3.SDL_DestroySurface(surface);
+
+        return (image, allocation, size);
+    }
+
+
+    private (VkImage, VmaAllocation, Size) InternalCreateTextureFromRgbaData(ReadOnlySpan<byte> data, uint width, uint height)
+    {
+        Console.WriteLine($"{width} {height} {data.Length}");
 
         // allocate staging buffer
         var stagingBufferInfo = new VkBufferCreateInfo
         {
-            size = size,
+            size = (uint)data.Length,
             usage = VkBufferUsageFlags.TransferSrc,
             sharingMode = VkSharingMode.Exclusive
         };
@@ -136,7 +170,12 @@ internal unsafe class TextureManager : IDisposable
             .CheckResult("failed to create buffer");
 
         // Upload data
-        Vma.vmaCopyMemoryToAllocation(_device.Allocator, (void*)surface->pixels, stagingAllocation, 0, size);
+        fixed (void* pData = data)
+        {
+            Console.WriteLine((nint)pData);
+
+            Vma.vmaCopyMemoryToAllocation(_device.Allocator, pData, stagingAllocation, 0, (uint)data.Length);
+        }
 
         // Create Image
         var imageInfo = new VkImageCreateInfo
@@ -220,14 +259,13 @@ internal unsafe class TextureManager : IDisposable
         _device.Api.vkWaitForFences(fence, true, ulong.MaxValue);
 
         // cleanup
-        SDL3.SDL_DestroySurface(surface);
-
         _device.Api.vkDestroyFence(fence);
         _device.Api.vkFreeCommandBuffers(_device.GraphicsCommandPool, commandBuffer);
         Vma.vmaDestroyBuffer(_device.Allocator, stagingBuffer, stagingAllocation);
 
         return (image, imageAllocation, new Size((int)width, (int)height));
     }
+
 
     private static VkDescriptorSetLayout CreateDescriptorSetLayout(VulkanDevice device)
     {
