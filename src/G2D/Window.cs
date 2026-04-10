@@ -104,11 +104,11 @@ public sealed unsafe class Window : IDisposable
         SDL3.SDL_ShowCursor();
     }
 
-    public int GetDisplayRefreshRate()
+    public float GetDisplayRefreshRate()
     {
         var displayId = SDL3.SDL_GetDisplayForWindow(_handle);
         var mode = SDL3.SDL_GetCurrentDisplayMode(displayId);
-        return (int)MathF.Round(mode->refresh_rate);
+        return mode->refresh_rate;
     }
 
     public nint CreateSurface(nint instance)

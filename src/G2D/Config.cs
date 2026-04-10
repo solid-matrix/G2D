@@ -26,5 +26,7 @@ public class Config
 
     public bool VSync { get; set; } = true;
 
-    public int TargetFps { get; set; } = 0;
+    public float UpdateFrequency { get; set; } = 60;
+
+    public float MaxRenderFrequency { get; set; } = 60;
 }

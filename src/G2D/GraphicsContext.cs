@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using Vortice.Mathematics;
 using Vortice.Vulkan;
 
@@ -234,33 +233,30 @@ public sealed unsafe class GraphicsContext : IDisposable
         _instance.Dispose();
     }
 
-    internal void RenderFrame(Action<DrawSessionState> draw)
+    internal bool RenderFrame(Action<DrawSessionState> draw)
     {
-        if (_window.IsMinimized()) return;
-
-        var sw1 = Stopwatch.StartNew();
         // wait for last submit
-        Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, ulong.MaxValue);
-
-        // Console.WriteLine($"sw1 {sw1.Elapsed.TotalMilliseconds} ms");
+        var result = Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, 0);
+        if (result != VkResult.Success) return false;
 
         Api.vkResetFences(_submitFences[_currentFrame]);
 
-        var sw2 = Stopwatch.StartNew();
-
         // acquire next image
-        var result = Api.vkAcquireNextImageKHR(_swapchain.Swapchain, ulong.MaxValue, _acquireSemaphores[_currentFrame], VkFence.Null, out var imageIndex);
+        result = Api.vkAcquireNextImageKHR(_swapchain.Swapchain, 0, _acquireSemaphores[_currentFrame], VkFence.Null, out var imageIndex);
 
-        // Console.WriteLine($"sw2 {sw2.Elapsed.TotalMilliseconds} ms");
-
-        if (result is VkResult.ErrorOutOfDateKHR)
+        switch (result)
         {
-            _swapchain.Recreate();
-            return;
+            case VkResult.Timeout:
+                return false;
+            case VkResult.ErrorOutOfDateKHR:
+                _swapchain.Recreate();
+                return false;
+            case VkResult.Success:
+            case VkResult.SuboptimalKHR:
+                break;
+            default:
+                throw new VkException("failed to acquire swap chain image!");
         }
-
-        if (result != VkResult.Success && result != VkResult.SuboptimalKHR)
-            throw new VkException("failed to acquire swap chain image!");
 
         // reset vertex / instance / index buffer pool
         _vertexBufferPools[_currentFrame].Reset();
@@ -386,11 +382,19 @@ public sealed unsafe class GraphicsContext : IDisposable
         };
         result = Api.vkQueuePresentKHR(_device.PresentQueue, &presentInfo);
 
-        if (result is VkResult.SuboptimalKHR or VkResult.ErrorOutOfDateKHR)
-            _swapchain.Recreate();
-        else if (result != VkResult.Success)
-            throw new VkException("failed to present swap chain image");
+        switch (result)
+        {
+            case VkResult.SuboptimalKHR:
+            case VkResult.ErrorOutOfDateKHR:
+                _swapchain.Recreate();
+                break;
+            case VkResult.Success:
+                break;
+            default:
+                throw new VkException("failed to present swap chain image");
+        }
 
         _currentFrame = (_currentFrame + 1) % _frameCountInFlight;
+        return true;
     }
 }

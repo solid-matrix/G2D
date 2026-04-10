@@ -1,106 +1,74 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace G2D;
 
 public class StepTimer
 {
-    internal readonly Stopwatch _sw = new();
-    private double _delta;
-    private long _frameIntervalTicks;
-    private double _last;
-    private long _lastFrameTicks;
-    private int _targetFps;
+    private readonly Stopwatch _sw;
 
-    public StepTimer(int targetFps = 0)
+    private long _lastTicks;
+
+    private long _deltaTicks;
+
+    private readonly long _updateFixedDeltaTicks;
+
+    private long _updateAccumulator;
+
+    private readonly long _renderFixedDeltaTicks;
+
+    private long _renderAccumulator;
+
+    internal StepTimer(double updateFrequency, double maxRenderFrequency)
     {
         _sw = new Stopwatch();
-        SetTargetFps(targetFps);
+        _lastTicks = _sw.ElapsedTicks;
+        _deltaTicks = 0;
+        _updateFixedDeltaTicks = (long)(Stopwatch.Frequency / updateFrequency);
+        _renderFixedDeltaTicks = (long)(Stopwatch.Frequency / maxRenderFrequency);
+        _updateAccumulator = 0;
+        _renderAccumulator = 0;
     }
 
-    public float NowF => (float)_sw.Elapsed.TotalSeconds;
+    public float UpdateDeltaTime => 1.0f * _updateFixedDeltaTicks / Stopwatch.Frequency;
 
-    public double Now => _sw.Elapsed.TotalSeconds;
+    public float RenderAlpha => 1.0f * _updateAccumulator / _updateFixedDeltaTicks;
 
-    public int TargetFps
+    public float Time => 1.0f * _lastTicks / Stopwatch.Frequency;
+
+    internal bool RequireUpdate => _updateAccumulator >= _updateFixedDeltaTicks;
+
+    internal bool RequireRender => _renderAccumulator >= _renderFixedDeltaTicks;
+
+    internal void NotifyUpdated()
     {
-        get => _targetFps;
-        set => SetTargetFps(value);
+        _updateAccumulator -= _updateFixedDeltaTicks;
+    }
+
+
+    internal void NotifyRendered()
+    {
+        _renderAccumulator %= _renderFixedDeltaTicks;
+    }
+
+    public void Step()
+    {
+        var current = _sw.ElapsedTicks;
+        _deltaTicks = current - _lastTicks;
+        _lastTicks = current;
+
+        _updateAccumulator += _deltaTicks;
+        _renderAccumulator += _deltaTicks;
     }
 
     public void Start()
     {
         _sw.Start();
-        _last = 0;
-        _lastFrameTicks = _sw.ElapsedTicks;
+        _lastTicks = _sw.ElapsedTicks;
+        _deltaTicks = 0;
     }
 
     public void Stop()
     {
         _sw.Stop();
-    }
-
-    public void Restart()
-    {
-        _sw.Restart();
-        _last = 0;
-        _lastFrameTicks = _sw.ElapsedTicks;
-    }
-
-    public void Step()
-    {
-        var current = NowF;
-        _delta = current - _last;
-        _last = current;
-    }
-
-    internal void WaitTargetFps()
-    {
-        if (_frameIntervalTicks == 0) return;
-
-        var currentTicks = _sw.ElapsedTicks;
-        var elapsedTicks = currentTicks - _lastFrameTicks;
-        var waitTicks = _frameIntervalTicks - elapsedTicks;
-
-        if (waitTicks > 0)
-        {
-            var waitMs = (double)waitTicks / Stopwatch.Frequency * 1000;
-            if (waitMs > 1)
-            {
-                var sleepMs = (int)Math.Floor(waitMs - 0.5);
-                Thread.Sleep(sleepMs);
-            }
-
-            while (_sw.ElapsedTicks - _lastFrameTicks < _frameIntervalTicks)
-            {
-            }
-        }
-
-        _lastFrameTicks = _sw.ElapsedTicks;
-    }
-
-    public float GetTimeF()
-    {
-        return (float)_last;
-    }
-
-    internal float GetDeltaTimeF()
-    {
-        return (float)_delta;
-    }
-
-    public double GetTime()
-    {
-        return _last;
-    }
-
-    internal double GetDeltaTime()
-    {
-        return _delta;
-    }
-
-    private void SetTargetFps(int fps)
-    {
-        _targetFps = Math.Clamp(fps, 0, 1000);
-        _frameIntervalTicks = _targetFps <= 0 ? 0 : Stopwatch.Frequency / _targetFps;
     }
 }

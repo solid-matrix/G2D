@@ -6,6 +6,8 @@ public abstract unsafe class Game
 {
     private bool _running;
 
+    private GraphicsContext _context = null!;
+
     internal static EmbeddedResource InternalEmbedded { get; } = new(typeof(Game).Assembly);
 
     protected Keyboard Keyboard { get; private set; } = null!;
@@ -16,11 +18,11 @@ public abstract unsafe class Game
 
     protected EmbeddedResource Embedded { get; private set; } = null!;
 
+    protected Assets Assets { get; private set; } = null!;
+
     protected StepTimer Timer { get; private set; } = null!;
 
     protected Window Window { get; private set; } = null!;
-
-    private GraphicsContext GraphicsContext { get; set; } = null!;
 
     protected Graphics Graphics { get; private set; } = null!;
 
@@ -33,12 +35,13 @@ public abstract unsafe class Game
 
     public Texture LoadTexture(byte[] raw)
     {
-        return GraphicsContext._textureManager.CreateTextureFromRaw(raw);
+        return _context._textureManager.CreateTextureFromRaw(raw);
     }
 
     internal void Initialize()
     {
         var config = new Config();
+
         Config(config);
 
         Embedded = new EmbeddedResource(GetType().Assembly);
@@ -51,39 +54,38 @@ public abstract unsafe class Game
         );
 
         if (config.VSync)
-        {
-            var rate = Window.GetDisplayRefreshRate();
-            Timer = new StepTimer(rate);
-        }
+            Timer = new StepTimer(config.UpdateFrequency, Window.GetDisplayRefreshRate());
+        else if (config.MaxRenderFrequency <= 0)
+            Timer = new StepTimer(config.UpdateFrequency, float.MaxValue);
         else
-        {
-            Timer = new StepTimer(config.TargetFps);
-        }
+            Timer = new StepTimer(config.UpdateFrequency, config.MaxRenderFrequency);
 
-        GraphicsContext = new GraphicsContext(
+        _context = new GraphicsContext(
             Window,
             config.ApplicationName, config.ApplicationVersion,
             config.EngineName, config.EngineVersion,
             config.DebugMode);
 
-        Graphics = new Graphics(GraphicsContext);
+        Graphics = new Graphics(_context);
 
         Keyboard = new Keyboard();
         Mouse = new Mouse();
         GamePad = new GamePad();
+        Assets = new Assets();
     }
 
     internal void Cleanup()
     {
-        ((IDisposable)GraphicsContext).Dispose();
+        ((IDisposable)_context).Dispose();
         ((IDisposable)Window).Dispose();
     }
 
-
     internal void Run()
     {
-        InternalLoad();
+        Load();
+        Timer.Start();
 
+        Window.Show();
         _running = true;
         SDL_Event e = new();
         while (_running)
@@ -91,45 +93,39 @@ public abstract unsafe class Game
             while (SDL3.SDL_PollEvent(&e)) InternalEvent(ref e);
             if (!_running) break;
 
-            InternalIteration();
+            Timer.Step();
+
+            while (Timer.RequireUpdate)
+            {
+                Update(Timer.UpdateDeltaTime);
+                Timer.NotifyUpdated();
+            }
+
+            if (!Window.IsMinimized() && Timer.RequireRender)
+            {
+                var res = _context.RenderFrame(session =>
+                {
+                    Graphics.BeginSession(session);
+
+                    Graphics.Uniform.MousePosition = Mouse.GetPosition();
+
+                    Graphics.Uniform.Time = Timer.Time;
+
+                    Draw(Timer.RenderAlpha);
+
+                    Graphics.EndSession();
+                });
+
+                if (res) Timer.NotifyRendered();
+            }
         }
 
-        InternalUnload();
+        Unload();
     }
 
     protected void Exit()
     {
         _running = false;
-    }
-
-    internal void InternalLoad()
-    {
-        Load();
-        Timer.Start();
-        Window.Show();
-    }
-
-    internal void InternalUnload()
-    {
-        Timer.Stop();
-        Unload();
-    }
-
-    internal void InternalIteration()
-    {
-        Timer.WaitTargetFps();
-        GraphicsContext.RenderFrame(session =>
-        {
-            Graphics.BeginSession(session);
-            Graphics.Uniform.MousePosition = Mouse.GetPosition();
-            Graphics.Uniform.Time = Timer.GetTimeF();
-
-            Timer.Step();
-            Update(Timer.GetDeltaTime());
-            Draw();
-
-            Graphics.EndSession();
-        });
     }
 
     internal void InternalEvent(ref SDL_Event e)
@@ -383,11 +379,11 @@ public abstract unsafe class Game
     {
     }
 
-    protected virtual void Update(double dt)
+    protected virtual void Update(float dt)
     {
     }
 
-    protected virtual void Draw()
+    protected virtual void Draw(float alpha)
     {
     }
 

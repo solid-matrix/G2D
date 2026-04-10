@@ -13,7 +13,8 @@ internal class MyGame : Game
 
     private Texture _texture;
 
-    private readonly FpsCounter _fpsCounter = new();
+    private readonly FpsCounter _updateFps = new();
+    private readonly FpsCounter _renderFps = new();
 
     protected override void Config(Config config)
     {
@@ -31,7 +32,9 @@ internal class MyGame : Game
 
         Window.HideCursor();
         Graphics.ClearColor4 = Colors.White;
-        _fpsCounter.OnAverageFpsUpdate += fps => Console.WriteLine($"Average FPS: {fps:0}");
+
+        _updateFps.OnAverageFpsUpdate += fps => Console.WriteLine($"Update Average FPS: {fps:0}");
+        _renderFps.OnAverageFpsUpdate += fps => Console.WriteLine($"Render Average FPS: {fps:0}");
     }
 
     protected override void Unload()
@@ -40,15 +43,17 @@ internal class MyGame : Game
 
     private int _count;
 
-    protected override void Update(double dt)
+    protected override void Update(float dt)
     {
-        _fpsCounter.Update();
+        _updateFps.Update();
 
         _count = (_count + 1) % 60;
     }
 
-    protected override void Draw()
+    protected override void Draw(float alpha)
     {
+        _renderFps.Update();
+
         var pos = Graphics.Viewport.ToVector2() / 2 - new Vector2(80, 80) / 2;
 
         if (_count < 20)
