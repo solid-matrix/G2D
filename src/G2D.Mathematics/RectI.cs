@@ -8,7 +8,7 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
     {
     }
 
-    public RectI(Vector2I location, Extent2I extent2) : this(location.X, location.Y, extent2.Width, extent2.Height)
+    public RectI(Vector2I location, SizeI size) : this(location.X, location.Y, size.Width, size.Height)
     {
     }
 
@@ -22,7 +22,7 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
 
     public Vector2I Location => new(X, Y);
 
-    public Extent2I Size => new(Width, Height);
+    public SizeI Size => new(Width, Height);
 
     public Vector2I Center => new(X + Width / 2, Y + Height / 2);
 

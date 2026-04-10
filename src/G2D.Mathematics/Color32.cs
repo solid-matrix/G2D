@@ -15,7 +15,7 @@ public readonly record struct Color32(byte R, byte G, byte B, byte A = 255)
     {
     }
 
-    public Color32(Color4 color4) : this((byte)(color4.R * 255), (byte)(color4.G * 255), (byte)(color4.B * 255), (byte)(color4.A * 255))
+    public Color32(Color color) : this((byte)(color.R * 255), (byte)(color.G * 255), (byte)(color.B * 255), (byte)(color.A * 255))
     {
     }
 
@@ -75,8 +75,8 @@ public readonly record struct Color32(byte R, byte G, byte B, byte A = 255)
         return new Color32(v);
     }
 
-    public static implicit operator Color4(Color32 c)
+    public static implicit operator Color(Color32 c)
     {
-        return new Color4(c);
+        return new Color(c);
     }
 }

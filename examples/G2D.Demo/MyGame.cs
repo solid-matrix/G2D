@@ -23,7 +23,6 @@ internal class MyGame : Game
         config.WindowTitle = "G2D Game";
         config.WindowResizable = true;
         config.VSync = true;
-        // config.TargetFps = 0;
     }
 
     protected override void Load()

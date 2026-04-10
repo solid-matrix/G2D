@@ -8,7 +8,7 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
     {
     }
 
-    public Rect(Vector2 location, Extent2 extent2) : this(location.X, location.Y, extent2.Width, extent2.Height)
+    public Rect(Vector2 location, Size2 size2) : this(location.X, location.Y, size2.Width, size2.Height)
     {
     }
 
@@ -20,9 +20,9 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
 
     public float Bottom => Y + Height;
 
-    public Vector2 Location => new(X, Y);
+    public Vector2 Position => new(X, Y);
 
-    public Extent2 Size => new(Width, Height);
+    public Size2 Size2 => new(Width, Height);
 
     public Vector2 Center => new(X + Width / 2f, Y + Height / 2f);
 
