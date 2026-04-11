@@ -13,6 +13,4 @@ internal struct DrawSessionState
     internal BufferSpanPool _vertexBufferPool;
 
     internal BufferSpanPool _instanceBufferPool;
-
-    internal BufferSpanPool _indexBufferPool;
 }

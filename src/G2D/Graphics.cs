@@ -10,13 +10,13 @@ public unsafe class Graphics
 {
     private static readonly Vertex[] UnitRectVertices =
     [
-        new(new Vec2(0, 0), new Vec2(0, 0), Colors.White),
-        new(new Vec2(1, 0), new Vec2(1, 0), Colors.White),
-        new(new Vec2(0, 1), new Vec2(0, 1), Colors.White),
-        new(new Vec2(1, 1), new Vec2(1, 1), Colors.White)
+        new(new Vec2(0, 0), new Vec2(0, 0), Colors.White), // 0 
+        new(new Vec2(1, 0), new Vec2(1, 0), Colors.White), // 1
+        new(new Vec2(0, 1), new Vec2(0, 1), Colors.White), // 2
+        new(new Vec2(0, 1), new Vec2(0, 1), Colors.White), // 2
+        new(new Vec2(1, 0), new Vec2(1, 0), Colors.White), // 1
+        new(new Vec2(1, 1), new Vec2(1, 1), Colors.White) // 3
     ];
-
-    private static readonly uint[] UnitRectIndices = [0, 1, 2, 2, 1, 3];
 
     private readonly GraphicsContext _context;
 
@@ -29,8 +29,6 @@ public unsafe class Graphics
     private readonly List<InstanceData> _instances = new();
 
     private BufferSpan _unitRectVerticesBuffer;
-
-    private BufferSpan _unitRectIndicesBuffer;
 
 
     internal Graphics(GraphicsContext context)
@@ -49,8 +47,6 @@ public unsafe class Graphics
     internal BufferSpanPool VertexBufferPool => _sessionState._vertexBufferPool;
 
     internal BufferSpanPool InstanceBufferPool => _sessionState._instanceBufferPool;
-
-    internal BufferSpanPool IndexBufferPool => _sessionState._indexBufferPool;
 
     internal GraphicsPipeline DefaultPipeline => _context._defaultGraphicsPipeline;
 
@@ -101,9 +97,7 @@ public unsafe class Graphics
         Uniform.Resolution = new Vector2(_viewport.Width, _viewport.Height);
 
         _unitRectVerticesBuffer = VertexBufferPool.AllocateUpload(UnitRectVertices);
-        _unitRectIndicesBuffer = IndexBufferPool.AllocateUpload(UnitRectIndices);
         Api.vkCmdBindVertexBuffer(CommandBuffer, 0, _unitRectVerticesBuffer.Buffer, _unitRectVerticesBuffer.Offset);
-        Api.vkCmdBindIndexBuffer(CommandBuffer, _unitRectIndicesBuffer.Buffer, _unitRectIndicesBuffer.Offset, VkIndexType.Uint32);
     }
 
     internal void EndSession()
@@ -121,7 +115,7 @@ public unsafe class Graphics
 
         Api.vkCmdBindVertexBuffer(CommandBuffer, 1, instanceBuffer.Buffer, instanceBuffer.Offset);
 
-        Api.vkCmdDrawIndexed(CommandBuffer, (uint)UnitRectIndices.Length, (uint)_instances.Count, 0, 0, 0);
+        Api.vkCmdDraw(CommandBuffer, (uint)UnitRectVertices.Length, (uint)_instances.Count, 0, 0);
 
         _instances.Clear();
     }

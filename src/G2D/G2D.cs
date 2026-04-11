@@ -4,11 +4,11 @@ namespace G2D;
 
 public static unsafe class G2D
 {
+    internal static readonly EmbeddedResource InternalEmbedded = new(typeof(G2D).Assembly);
+
     private static bool _running;
 
     private static GraphicsContext? _graphicsContext;
-
-    private static readonly EmbeddedResource _internalEmbedded = new(typeof(G2D).Assembly);
 
     private static Keyboard? _keyboard;
 
@@ -32,11 +32,7 @@ public static unsafe class G2D
 
     private static Type? _gameType;
 
-    internal static bool Running => _running;
-
     internal static GraphicsContext GraphicsContext => _graphicsContext ?? throw new InvalidOperationException("GraphicsContext is not ready");
-
-    internal static EmbeddedResource InternalEmbedded => _internalEmbedded ?? throw new InvalidOperationException("InternalEmbedded is not ready");
 
     public static Keyboard Keyboard => _keyboard ?? throw new InvalidOperationException("Keyboard is not ready");
 
@@ -56,9 +52,6 @@ public static unsafe class G2D
 
     public static Graphics Graphics => _graphics ?? throw new InvalidOperationException("Graphics is not ready");
 
-    private static IGame Game => _game ?? throw new InvalidOperationException("Game is not ready");
-
-    private static Type GameType => _gameType ?? throw new InvalidOperationException("Game is not ready");
 
     public static void Launch<T>(T game) where T : IGame
     {
@@ -74,9 +67,9 @@ public static unsafe class G2D
         _running = false;
 
         var config = new Config();
-        Game.Config(config);
+        _game!.Config(config);
 
-        _embedded = new EmbeddedResource(GameType.Assembly);
+        _embedded = new EmbeddedResource(_gameType!.Assembly);
 
         _window = new Window(
             config.WindowTitle, config.WindowWidth, config.WindowHeight,
@@ -86,7 +79,7 @@ public static unsafe class G2D
         );
 
         if (config.VSync)
-            _timer = new StepTimer(config.UpdateFrequency, Window.GetDisplayRefreshRate());
+            _timer = new StepTimer(config.UpdateFrequency, _window.GetDisplayRefreshRate());
         else if (config.MaxRenderFrequency <= 0)
             _timer = new StepTimer(config.UpdateFrequency, float.MaxValue);
         else
@@ -109,7 +102,7 @@ public static unsafe class G2D
 
     private static void RunLoop()
     {
-        Game.Load();
+        _game!.Load();
         Timer.Start();
 
         Window.Show();
@@ -125,7 +118,7 @@ public static unsafe class G2D
 
             while (Timer.RequireUpdate)
             {
-                Game.Update(Timer.UpdateDeltaTime);
+                _game!.Update(Timer.UpdateDeltaTime);
                 Timer.NotifyUpdated();
             }
 
@@ -139,7 +132,7 @@ public static unsafe class G2D
 
                     Graphics.Uniform.Time = Timer.Time;
 
-                    Game.Draw(Timer.RenderAlpha);
+                    _game!.Draw(Timer.RenderAlpha);
 
                     Graphics.EndSession();
                 });
@@ -148,7 +141,7 @@ public static unsafe class G2D
             }
         }
 
-        Game.Unload();
+        _game!.Unload();
     }
 
     private static void Cleanup()

@@ -50,8 +50,6 @@ public sealed unsafe class GraphicsContext : IDisposable
 
     internal readonly BufferSpanPool[] _instanceBufferPools;
 
-    internal readonly BufferSpanPool[] _indexBufferPools;
-
 
     internal readonly VkFence[] _submitFences;
 
@@ -168,10 +166,6 @@ public sealed unsafe class GraphicsContext : IDisposable
         _instanceBufferPools = new BufferSpanPool[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++) _instanceBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
 
-        // Create Index Buffer Pool
-        _indexBufferPools = new BufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _indexBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.IndexBuffer, VmaMemoryUsage.CpuToGpu);
-
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
@@ -207,7 +201,6 @@ public sealed unsafe class GraphicsContext : IDisposable
         {
             _vertexBufferPools[i].Dispose();
             _instanceBufferPools[i].Dispose();
-            _indexBufferPools[i].Dispose();
         }
 
         _uniformBufferManager.Dispose();
@@ -260,7 +253,6 @@ public sealed unsafe class GraphicsContext : IDisposable
         // reset vertex / instance / index buffer pool
         _vertexBufferPools[_currentFrame].Reset();
         _instanceBufferPools[_currentFrame].Reset();
-        _indexBufferPools[_currentFrame].Reset();
 
         // reset command buffer
         Api.vkResetCommandBuffer(_commandBuffers[_currentFrame], VkCommandBufferResetFlags.None)
@@ -328,8 +320,7 @@ public sealed unsafe class GraphicsContext : IDisposable
             _commandBuffer = _commandBuffers[_currentFrame],
             _uniformBuffer = _uniformBufferManager.Buffers[_currentFrame],
             _vertexBufferPool = _vertexBufferPools[_currentFrame],
-            _instanceBufferPool = _instanceBufferPools[_currentFrame],
-            _indexBufferPool = _indexBufferPools[_currentFrame]
+            _instanceBufferPool = _instanceBufferPools[_currentFrame]
         };
 
         draw(drawSession);
