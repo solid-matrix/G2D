@@ -32,8 +32,6 @@ public static unsafe class G2D
 
     private static Type? _gameType;
 
-    internal static GraphicsContext GraphicsContext => _graphicsContext ?? throw new InvalidOperationException("GraphicsContext is not ready");
-
     public static Keyboard Keyboard => _keyboard ?? throw new InvalidOperationException("Keyboard is not ready");
 
     public static Mouse Mouse => _mouse ?? throw new InvalidOperationException("Mouse is not ready");
@@ -118,13 +116,13 @@ public static unsafe class G2D
 
             while (Timer.RequireUpdate)
             {
-                _game!.Update(Timer.UpdateDeltaTime);
+                _game.Update(Timer.UpdateDeltaTime);
                 Timer.NotifyUpdated();
             }
 
             if (!Window.IsMinimized() && Timer.RequireRender)
             {
-                var res = GraphicsContext.RenderFrame(session =>
+                var res = _graphicsContext!.RenderFrame(session =>
                 {
                     Graphics.BeginSession(session);
 
@@ -132,7 +130,7 @@ public static unsafe class G2D
 
                     Graphics.Uniform.Time = Timer.Time;
 
-                    _game!.Draw(Timer.RenderAlpha);
+                    _game.Draw(Timer.RenderAlpha);
 
                     Graphics.EndSession();
                 });
@@ -141,16 +139,16 @@ public static unsafe class G2D
             }
         }
 
-        _game!.Unload();
+        _game.Unload();
     }
 
     private static void Cleanup()
     {
-        ((IDisposable)GraphicsContext).Dispose();
-        ((IDisposable)Window).Dispose();
+        ((IDisposable)_graphicsContext!).Dispose();
+        ((IDisposable)_window!).Dispose();
     }
 
-    public static void Exit()
+    public static void Exit(bool exit = true)
     {
         _running = false;
     }

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace G2D.Mathematics;
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public readonly struct Color : IEquatable<Color>, IFormattable
+public readonly struct Color : IEquatable<Color>
 {
     internal readonly Vec4 _inner;
 
@@ -192,17 +192,7 @@ public readonly struct Color : IEquatable<Color>, IFormattable
 
     public override string ToString()
     {
-        return _inner.ToString();
-    }
-
-    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
-    {
-        return _inner.ToString(format);
-    }
-
-    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
-    {
-        return _inner.ToString(format, formatProvider);
+        return $"{R} {G} {B} {A}";
     }
 
     public static implicit operator Vec4(Color c)
