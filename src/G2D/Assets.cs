@@ -14,6 +14,11 @@ public class Assets
         return _textureManager.CreateTextureFromRaw(raw);
     }
 
+    public void UnloadTexture(Texture texture)
+    {
+        _textureManager.DestroyTexture(texture);
+    }
+
     public Texture[] LoadTextureAtlas(byte[] atlas, byte[] imageRaw)
     {
         throw new NotImplementedException();

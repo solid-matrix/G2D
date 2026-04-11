@@ -154,8 +154,8 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         // Create Common Graphics Pipeline
         _defaultGraphicsPipeline = _graphicsPipelineFactory.Create(
-            Game.InternalEmbedded.GetBytes("Assets/Shaders/default.vert.spv"),
-            Game.InternalEmbedded.GetBytes("Assets/Shaders/default.frag.spv")
+            G2D.InternalEmbedded.GetBytes("Assets/Shaders/default.vert.spv"),
+            G2D.InternalEmbedded.GetBytes("Assets/Shaders/default.frag.spv")
             //colorBlend: GraphicsPipelineColorBlendOption.Alpha
         );
 
