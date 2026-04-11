@@ -7,15 +7,7 @@ namespace G2D;
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct InstanceData
 {
-    public Vec2 Translation = Vec2.Zero;
-
-    public float Rotation = 0;
-
-    public Vec2 Scale = Vec2.One;
-
-    public Vec2 OriginOffset = Vec2.Zero;
-
-    public Vec2 Shear = Vec2.Zero;
+    public Mat3X3 ModelTransform;
 
     public Vec4 Color4 = Colors.White;
 
@@ -27,11 +19,7 @@ internal unsafe struct InstanceData
 
     public InstanceData(Vec2 t, float r, Vec2 s, Vec2 o, Vec2 k, Vec4 color4)
     {
-        Translation = t;
-        Rotation = r;
-        Scale = s;
-        OriginOffset = o;
-        Shear = k;
+        ModelTransform = Mat3X3.CreateAffine(t, r, s, o, k);
         Color4 = color4;
         TextureScale = Vec2.One;
         TextureOffset = Vec2.Zero;
@@ -40,11 +28,7 @@ internal unsafe struct InstanceData
 
     public InstanceData(Vec2 t, float r, Vec2 s, Vec2 o, Vec2 k, Vec4 color4, Texture texture, Sampler sampler)
     {
-        Translation = t;
-        Rotation = r;
-        Scale = s * new Vec2(texture.Size.Width, texture.Size.Height);
-        OriginOffset = o;
-        Shear = k;
+        ModelTransform = Mat3X3.CreateAffine(t, r, s * texture.Size, o, k);
         Color4 = color4;
         TextureScale = Vec2.One;
         TextureOffset = Vec2.Zero;
@@ -53,17 +37,12 @@ internal unsafe struct InstanceData
 
     public InstanceData(Rect quad, Vec2 t, float r, Vec2 s, Vec2 o, Vec2 k, Vec4 color4, Texture texture, Sampler sampler)
     {
-        Translation = t;
-        Rotation = r;
-        Scale = s * new Vec2(quad.Width, quad.Height);
-        OriginOffset = o;
-        Shear = k;
+        ModelTransform = Mat3X3.CreateAffine(t, r, s * quad.Size, o, k);
         Color4 = color4;
         TextureScale = new Vec2(quad.Width, quad.Height) / new Vec2(texture.Size.Width, texture.Size.Height);
         TextureOffset = quad.Position / texture.Size;
         SetTextureSampler(0, (uint)texture.Index, (uint)sampler);
     }
-
 
     public void SetTextureSampler(int slot, uint textureId, uint samplerId)
     {
@@ -90,38 +69,25 @@ internal unsafe struct InstanceData
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
-                location = 3,
-                format = VkFormat.R32G32Sfloat,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(Translation))
-            },
-            new VkVertexInputAttributeDescription
-            {
-                binding = 1,
-                location = 4,
-                format = VkFormat.R32Sfloat,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(Rotation))
-            },
-            new VkVertexInputAttributeDescription
-            {
-                binding = 1,
                 location = 5,
-                format = VkFormat.R32G32Sfloat,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(Scale))
+                format = VkFormat.R32G32B32Sfloat,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(ModelTransform))
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 6,
-                format = VkFormat.R32G32Sfloat,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(OriginOffset))
+                format = VkFormat.R32G32B32Sfloat,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(ModelTransform)) + 3 * (uint)sizeof(float)
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 1,
                 location = 7,
-                format = VkFormat.R32G32Sfloat,
-                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(Shear))
+                format = VkFormat.R32G32B32Sfloat,
+                offset = (uint)Marshal.OffsetOf<InstanceData>(nameof(ModelTransform)) + 6 * (uint)sizeof(float)
             },
+
             new VkVertexInputAttributeDescription
             {
                 binding = 1,

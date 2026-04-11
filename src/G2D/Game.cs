@@ -33,10 +33,6 @@ public abstract unsafe class Game
         Cleanup();
     }
 
-    public Texture LoadTexture(byte[] raw)
-    {
-        return _context._textureManager.CreateTextureFromRaw(raw);
-    }
 
     internal void Initialize()
     {
@@ -68,10 +64,11 @@ public abstract unsafe class Game
 
         Graphics = new Graphics(_context);
 
+        Assets = new Assets(_context._textureManager);
+
         Keyboard = new Keyboard();
         Mouse = new Mouse();
         GamePad = new GamePad();
-        Assets = new Assets();
     }
 
     internal void Cleanup()

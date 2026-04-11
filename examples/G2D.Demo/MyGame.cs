@@ -26,7 +26,7 @@ internal class MyGame : Game
 
     protected override void Load()
     {
-        _texture = LoadTexture(Embedded.GetBytes("Assets/Images/atlas.png"));
+        _texture = Assets.LoadTexture(Embedded.GetBytes("Assets/Images/atlas.png"));
 
         Window.HideCursor();
         Graphics.ClearColor4 = Colors.White;
@@ -55,11 +55,11 @@ internal class MyGame : Game
         var pos = Graphics.Viewport / 2 - new Vec2(80, 80) / 2;
 
         if (_count < 20)
-            Graphics.Draw(_texture, new Rect(20, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
+            Graphics.Draw(_texture, new Rect(20, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4, 0, 0, 0, 0);
         else if (_count < 40)
-            Graphics.Draw(_texture, new Rect(20, 20, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
+            Graphics.Draw(_texture, new Rect(20, 20, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4, 0, 0, 0, 0);
         else
-            Graphics.Draw(_texture, new Rect(40, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
+            Graphics.Draw(_texture, new Rect(40, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4, 0, 0, 0, 0);
     }
 
     protected override void Event(ref KeyboardEvent e)

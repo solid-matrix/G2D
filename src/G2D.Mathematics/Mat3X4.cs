@@ -101,7 +101,9 @@ public readonly struct Mat3X4 : IEquatable<Mat3X4>
 
     public float this[int col, int row] => this[col][row];
 
-    public static Mat3X3 Zero => default;
+    public static Mat3X4 Zero => default;
+
+    public static Mat3X4 Identity => new(Mat3X3.Identity);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Mat3X4 operator +(in Mat3X4 mat)

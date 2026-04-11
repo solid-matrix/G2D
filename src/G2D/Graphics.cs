@@ -61,7 +61,7 @@ public unsafe class Graphics
     }
 
 
-    public void SetViewTransform(Mat4X4 matrix)
+    public void SetViewTransform(Mat3X4 matrix)
     {
         FlushUnitRectDraw();
         Uniform.View = matrix;
@@ -96,7 +96,7 @@ public unsafe class Graphics
     {
         _sessionState = sessionState;
         _viewport = new Size2(_sessionState._extent.width, _sessionState._extent.height);
-        Uniform.View = Mat4X4.Identity;
+        Uniform.View = Mat3X4.Identity;
         Uniform.Color = Colors.White;
         Uniform.Resolution = new Vector2(_viewport.Width, _viewport.Height);
 

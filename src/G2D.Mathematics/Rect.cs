@@ -22,7 +22,7 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
 
     public Vec2 Position => new(X, Y);
 
-    public Size2 Size2 => new(Width, Height);
+    public Size2 Size => new(Width, Height);
 
     public Vector2 Center => new(X + Width / 2f, Y + Height / 2f);
 

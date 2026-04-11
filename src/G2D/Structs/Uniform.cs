@@ -6,7 +6,7 @@ namespace G2D;
 [StructLayout(LayoutKind.Sequential, Pack = 16)]
 internal struct Uniform
 {
-    public Mat4X4 View;
+    public Mat3X4 View;
 
     public Vec4 Color;
 
