@@ -1,53 +1,57 @@
-using System.Numerics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 
 namespace G2D.Mathematics;
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
-public readonly struct Color : IEquatable<Color>
+public readonly struct Color : IEquatable<Color>, IFormattable
 {
-    private readonly Vector128<float> _value;
+    internal readonly Vec4 _inner;
+
+    public float R => _inner.X;
+
+    public float G => _inner.Y;
+
+    public float B => _inner.Z;
+
+    public float A => _inner.W;
 
     public Color()
     {
-        _value = Vector128.Create(0f, 0f, 0f, 0f);
-    }
-
-    public Color(float r, float g, float b, float a = 1.0f)
-    {
-        _value = Vector128.Create(r, g, b, a);
+        _inner = new Vec4();
     }
 
     public Color(float v)
     {
-        _value = Vector128.Create(v, v, v, v);
+        _inner = new Vec4(v);
     }
 
-    public Color(in Vector4 vec)
+    public Color(float r, float g, float b, float a = 1.0f)
     {
-        _value = vec.AsVector128();
+        _inner = new Vec4(r, g, b, a);
     }
 
-    public Color(in Vector3 vec, float a = 1.0f)
+    public Color(in Vec3 vec, float a = 1.0f)
     {
-        _value = Vector128.Create(vec.X, vec.Y, vec.Z, a);
+        _inner = new Vec4(vec, a);
     }
 
     public Color(Color32 color32)
     {
-        _value = Vector128.Create(color32.R / 255.0f, color32.G / 255.0f, color32.B / 255.0f, color32.A / 255.0f);
+        _inner = new Vec4(color32.R / 255.0f, color32.G / 255.0f, color32.B / 255.0f, color32.A / 255.0f);
     }
 
-    public float R => _value.GetElement(0);
+    public Color(ReadOnlySpan<float> values)
+    {
+        _inner = new Vec4(values);
+    }
 
-    public float G => _value.GetElement(1);
+    public Color(Vec4 vec)
+    {
+        _inner = vec;
+    }
 
-    public float B => _value.GetElement(2);
-
-    public float A => _value.GetElement(3);
-
-    public float this[int index] => _value.GetElement(index);
+    public float this[int index] => _inner[index];
 
     public bool IsTransparent => A <= 0;
 
@@ -56,102 +60,157 @@ public readonly struct Color : IEquatable<Color>
         return new Color(R, G, B, a);
     }
 
-    public static Color Negative(in Color color)
+    public static Color operator /(Color left, Color right)
+    {
+        return left._inner / right._inner;
+    }
+
+    public static Color operator /(Color left, float right)
+    {
+        return left._inner / right;
+    }
+
+    public static bool operator ==(Color left, Color right)
+    {
+        return left._inner == right._inner;
+    }
+
+    public static bool operator !=(Color left, Color right)
+    {
+        return left._inner != right._inner;
+    }
+
+    public static Color operator *(Color left, Color right)
+    {
+        return left._inner * right._inner;
+    }
+
+    public static Color operator *(Color left, float right)
+    {
+        return left._inner * right;
+    }
+
+    public static Color operator *(float left, Color right)
+    {
+        return left * right._inner;
+    }
+
+    public static Color Clamp(Color value, Color min, Color max)
+    {
+        return Vec4.Clamp(value._inner, min._inner, max._inner);
+    }
+
+    public static Color Divide(Color left, Color right)
+    {
+        return Vec4.Divide(left._inner, right._inner);
+    }
+
+    public static Color Divide(Color left, float divisor)
+    {
+        return Vec4.Divide(left._inner, divisor);
+    }
+
+    public static Color Lerp(Color value1, Color value2, float amount)
+    {
+        return Vec4.Lerp(value1._inner, value2._inner, amount);
+    }
+
+    public static Color Lerp(Color value1, Color value2, Color amount)
+    {
+        return Vec4.Lerp(value1._inner, value2._inner, amount._inner);
+    }
+
+    public static Color Max(Color value1, Color value2)
+    {
+        return Vec4.Max(value1._inner, value2._inner);
+    }
+
+    public static Color Min(Color value1, Color value2)
+    {
+        return Vec4.Min(value1._inner, value2._inner);
+    }
+
+    public static Color Multiply(Color left, Color right)
+    {
+        return Vec4.Multiply(left._inner, right._inner);
+    }
+
+    public static Color Multiply(Color left, float right)
+    {
+        return Vec4.Multiply(left._inner, right);
+    }
+
+    public static Color Multiply(float left, Color right)
+    {
+        return Vec4.Multiply(left, right._inner);
+    }
+
+    public static Color Premultiply(Color value)
+    {
+        return Vec4.Multiply(value._inner, new Vec4(new Vec3(value.A), 1.0f));
+    }
+
+    public static Color Negate(Color color)
     {
         return new Color(1.0f - color.R, 1.0f - color.G, 1.0f - color.B, color.A);
     }
 
-    public static Color Lerp(in Color start, in Color end, float amount)
+    public void CopyTo(float[] array)
     {
-        return new Color(
-            Math.Clamp(start.R + (end.R - start.R) * amount, 0, 1),
-            Math.Clamp(start.G + (end.G - start.G) * amount, 0, 1),
-            Math.Clamp(start.B + (end.B - start.B) * amount, 0, 1),
-            Math.Clamp(start.A + (end.A - start.A) * amount, 0, 1)
-        );
+        _inner.CopyTo(array);
     }
 
-    public static Color Clamp(in Color value, in Color min, in Color max)
+    public void CopyTo(float[] array, int index)
     {
-        return new Color(
-            Math.Clamp(value.R, min.R, max.R),
-            Math.Clamp(value.G, min.G, max.G),
-            Math.Clamp(value.B, min.B, max.B),
-            Math.Clamp(value.A, min.A, max.A)
-        );
+        _inner.CopyTo(array, index);
     }
 
-    public static Color Multiply(in Color color1, in Color color2)
+    public void CopyTo(Span<float> destination)
     {
-        return new Color(
-            color1.R * color2.R,
-            color1.G * color2.G,
-            color1.B * color2.B,
-            color1.A * color2.A
-        );
+        _inner.CopyTo(destination);
     }
 
-    public static Color Premultiply(in Color value)
+    public bool TryCopyTo(Span<float> destination)
     {
-        return new Color(
-            value.R * value.A,
-            value.G * value.A,
-            value.B * value.A,
-            value.A
-        );
+        return _inner.TryCopyTo(destination);
     }
 
-    public static Color operator +(in Color left, in Color right)
+    public override bool Equals([NotNullWhen(true)] object? obj)
     {
-        return new Color(
-            Math.Min(left.R + right.R, 1),
-            Math.Min(left.G + right.G, 1),
-            Math.Min(left.B + right.B, 1),
-            Math.Min(left.A + right.A, 1)
-        );
+        return obj is Color other && Equals(other);
     }
 
-    public static Color operator *(in Color color, float scalar)
+    public bool Equals(Color other)
     {
-        return new Color(
-            Math.Min(color.R * scalar, 1),
-            Math.Min(color.G * scalar, 1),
-            Math.Min(color.B * scalar, 1),
-            Math.Min(color.A * scalar, 1)
-        );
+        return _inner.Equals(other._inner);
     }
 
-    public static Color operator *(float scalar, in Color color)
+    public override int GetHashCode()
     {
-        return new Color(
-            Math.Min(color.R * scalar, 1),
-            Math.Min(color.G * scalar, 1),
-            Math.Min(color.B * scalar, 1),
-            Math.Min(color.A * scalar, 1)
-        );
+        return _inner.GetHashCode();
     }
 
-    public static Color operator *(in Color left, in Color right)
+    public override string ToString()
     {
-        return Multiply(left, right);
+        return _inner.ToString();
     }
 
-    public static implicit operator Vector4(in Color c)
+    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
     {
-        return new Vector4(c.R, c.G, c.B, c.A);
+        return _inner.ToString(format);
     }
 
-    public static implicit operator Color(in Vector4 v)
+    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
-        return new Color(v);
+        return _inner.ToString(format, formatProvider);
     }
 
-    public static implicit operator Vec4(in Color c)
+    public static implicit operator Vec4(Color c)
     {
-        return new Vector4(c.R, c.G, c.B, c.A);
+        return c._inner;
     }
 
-    public static implicit operator Color(in Vec4 v)
+    public static implicit operator Color(Vec4 v)
     {
         return new Color(v);
     }
@@ -159,35 +218,5 @@ public readonly struct Color : IEquatable<Color>
     public static explicit operator Color32(in Color c)
     {
         return new Color32(c);
-    }
-
-    public bool Equals(Color other)
-    {
-        return Vector128.EqualsAll(_value, other._value);
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is Color color && Equals(color);
-    }
-
-    public static bool operator ==(Color left, Color right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(Color left, Color right)
-    {
-        return !left.Equals(right);
-    }
-
-    public override int GetHashCode()
-    {
-        return _value.GetHashCode();
-    }
-
-    public override string ToString()
-    {
-        return $"{nameof(Color)}(R = {R}, G = {G}, B = {B}, A = {A})";
     }
 }

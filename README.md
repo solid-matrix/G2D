@@ -52,5 +52,10 @@ Currently only supports modern devices (with Vulkan 1.3 support or above). Compa
 
 - Implement engine -native multi-threading and asynchronization to maximize performance potential.
 
+- Implement `G2D.Mathematics` library
+
+  column-major order matrices.
+
+
 
 

@@ -25,6 +25,7 @@ layout (set = 0, binding = 0) uniform UniformBlock {
     float u_time;
 };
 
+
 // output
 layout (location = 0) out vec2 f_tex_coords;
 layout (location = 1) out vec4 f_color;
@@ -50,7 +51,7 @@ void main() {
     mat3 model = buildModelMatrix(i_translation, i_rotation, i_scale, i_origin, i_shear);
     mat3 proj = buildProjectionMatrix(u_res);
 
-    vec3 t1 =  model * vec3(v_pos, 1);
+    vec3 t1 = model * vec3(v_pos, 1);
     vec4 t2 = u_view * vec4(t1.xy, 0, 1);
     vec3 t3 = proj * vec3(t2.xy, 1);
 

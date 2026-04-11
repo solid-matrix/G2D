@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace G2D.Mathematics;
 
+[StructLayout(LayoutKind.Sequential, Pack = 4)]
 public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
 {
     internal readonly Vector4 _inner;
@@ -638,11 +640,6 @@ public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
         return Vector4.Sum(value._inner);
     }
 
-    public static Vec4 Transform(Vec4 vector, Matrix4x4 matrix)
-    {
-        return Vector4.Transform(vector._inner, matrix);
-    }
-
     public static Vec4 Truncate(Vec4 vector)
     {
         return Vector4.Truncate(vector._inner);
@@ -653,62 +650,62 @@ public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
         return Vector4.Xor(left._inner, right._inner);
     }
 
-    public readonly void CopyTo(float[] array)
+    public void CopyTo(float[] array)
     {
         _inner.CopyTo(array);
     }
 
-    public readonly void CopyTo(float[] array, int index)
+    public void CopyTo(float[] array, int index)
     {
         _inner.CopyTo(array, index);
     }
 
-    public readonly void CopyTo(Span<float> destination)
+    public void CopyTo(Span<float> destination)
     {
         _inner.CopyTo(destination);
     }
 
-    public readonly bool TryCopyTo(Span<float> destination)
+    public bool TryCopyTo(Span<float> destination)
     {
         return _inner.TryCopyTo(destination);
     }
 
-    public readonly override bool Equals([NotNullWhen(true)] object? obj)
+    public override bool Equals([NotNullWhen(true)] object? obj)
     {
         return obj is Vec4 other && Equals(other);
     }
 
-    public readonly bool Equals(Vec4 other)
+    public bool Equals(Vec4 other)
     {
         return _inner.Equals(other._inner);
     }
 
-    public readonly override int GetHashCode()
+    public override int GetHashCode()
     {
         return _inner.GetHashCode();
     }
 
-    public readonly float Length()
+    public float Length()
     {
         return _inner.Length();
     }
 
-    public readonly float LengthSquared()
+    public float LengthSquared()
     {
         return _inner.LengthSquared();
     }
 
-    public readonly override string ToString()
+    public override string ToString()
     {
         return _inner.ToString();
     }
 
-    public readonly string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
+    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format)
     {
         return _inner.ToString(format);
     }
 
-    public readonly string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
+    public string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
         return _inner.ToString(format, formatProvider);
     }
@@ -716,10 +713,5 @@ public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
     public static implicit operator Vec4(Vector4 v)
     {
         return new Vec4(v);
-    }
-
-    public static implicit operator Vector4(Vec4 v)
-    {
-        return v._inner;
     }
 }
