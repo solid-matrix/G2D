@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 public readonly record struct Rect(float X, float Y, float Width, float Height)
 {
@@ -20,7 +20,7 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
 
     public float Bottom => Y + Height;
 
-    public Vector2 Position => new(X, Y);
+    public Vec2 Position => new(X, Y);
 
     public Size2 Size2 => new(Width, Height);
 

@@ -2,7 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 [StructLayout(LayoutKind.Sequential, Pack = 4)]
 public readonly struct Color : IEquatable<Color>
@@ -34,9 +34,9 @@ public readonly struct Color : IEquatable<Color>
         _value = Vector128.Create(vec.X, vec.Y, vec.Z, a);
     }
 
-    public Color(Color32 color)
+    public Color(Color32 color32)
     {
-        _value = Vector128.Create(color.R / 255.0f, color.G / 255.0f, color.B / 255.0f, color.A / 255.0f);
+        _value = Vector128.Create(color32.R / 255.0f, color32.G / 255.0f, color32.B / 255.0f, color32.A / 255.0f);
     }
 
     public float R => _value.GetElement(0);
@@ -142,6 +142,16 @@ public readonly struct Color : IEquatable<Color>
     }
 
     public static implicit operator Color(in Vector4 v)
+    {
+        return new Color(v);
+    }
+
+    public static implicit operator Vec4(in Color c)
+    {
+        return new Vector4(c.R, c.G, c.B, c.A);
+    }
+
+    public static implicit operator Color(in Vec4 v)
     {
         return new Color(v);
     }

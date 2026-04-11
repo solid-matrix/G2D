@@ -1,4 +1,4 @@
-﻿namespace G2D;
+﻿namespace G2D.Mathematics;
 
 public readonly record struct Size3(float Width, float Height, float Depth)
 {

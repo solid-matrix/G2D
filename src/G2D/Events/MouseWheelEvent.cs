@@ -1,6 +1,6 @@
 using System.Numerics;
+using G2D.Mathematics;
 using SDL;
-using Vortice.Mathematics;
 
 namespace G2D;
 
@@ -14,7 +14,7 @@ public readonly ref struct MouseWheelEvent
 
     public Vector2 Scroll => new(_event.x, _event.y);
 
-    public Int2 Ticks => new(_event.integer_x, _event.integer_y);
+    public Vec2I Ticks => new(_event.integer_x, _event.integer_y);
 
     internal MouseWheelEvent(ref SDL_Event e)
     {

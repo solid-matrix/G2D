@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Vortice.Mathematics;
+using G2D.Mathematics;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -10,10 +10,10 @@ public unsafe class Graphics
 {
     private static readonly Vertex[] UnitRectVertices =
     [
-        new(new Vector2(0, 0), new Vector2(0, 0), Colors.White),
-        new(new Vector2(1, 0), new Vector2(1, 0), Colors.White),
-        new(new Vector2(0, 1), new Vector2(0, 1), Colors.White),
-        new(new Vector2(1, 1), new Vector2(1, 1), Colors.White)
+        new(new Vec2(0, 0), new Vec2(0, 0), Colors.White),
+        new(new Vec2(1, 0), new Vec2(1, 0), Colors.White),
+        new(new Vec2(0, 1), new Vec2(0, 1), Colors.White),
+        new(new Vec2(1, 1), new Vec2(1, 1), Colors.White)
     ];
 
     private static readonly uint[] UnitRectIndices = [0, 1, 2, 2, 1, 3];
@@ -22,7 +22,7 @@ public unsafe class Graphics
 
     private DrawSessionState _sessionState;
 
-    private Size _viewport;
+    private Size2 _viewport;
 
     private GraphicsPipeline? _currentPipeline;
 
@@ -40,7 +40,7 @@ public unsafe class Graphics
 
     internal VkDeviceApi Api => _context.Api;
 
-    public Size Viewport => _viewport;
+    public Size2 Viewport => _viewport;
 
     internal ref Uniform Uniform => ref Unsafe.AsRef<Uniform>((void*)_sessionState._uniformBuffer.Pointer);
 
@@ -54,23 +54,23 @@ public unsafe class Graphics
 
     internal GraphicsPipeline DefaultPipeline => _context._defaultGraphicsPipeline;
 
-    public Color4 ClearColor4
+    public Color ClearColor4
     {
-        get => _context.ClearColor4;
-        set => _context.ClearColor4 = value;
+        get => new(_context.ClearColor.float32[0], _context.ClearColor.float32[1], _context.ClearColor.float32[2], _context.ClearColor.float32[3]);
+        set => _context.ClearColor = new VkClearColorValue(value.R, value.G, value.B, value.A);
     }
 
 
-    public void SetViewTransform(Matrix4x4 matrix)
+    public void SetViewTransform(Mat4 matrix)
     {
         FlushUnitRectDraw();
         Uniform.View = matrix;
     }
 
-    public void SetColor(Color4 color4)
+    public void SetColor(Color color)
     {
         FlushUnitRectDraw();
-        Uniform.Color = color4;
+        Uniform.Color = color;
     }
 
     internal void SetMousePosition(Vector2 pos)
@@ -95,8 +95,8 @@ public unsafe class Graphics
     internal void BeginSession(DrawSessionState sessionState)
     {
         _sessionState = sessionState;
-        _viewport = new Size(_sessionState._extent.width, _sessionState._extent.height);
-        Uniform.View = Matrix4x4.Identity;
+        _viewport = new Size2(_sessionState._extent.width, _sessionState._extent.height);
+        Uniform.View = Mat4.Identity;
         Uniform.Color = Colors.White;
         Uniform.Resolution = new Vector2(_viewport.Width, _viewport.Height);
 
@@ -126,42 +126,42 @@ public unsafe class Graphics
         _instances.Clear();
     }
 
-    public void Draw(Rect rect, Color4 color4)
+    public void Draw(Rect rect, Color color)
     {
-        var instance = new InstanceData(rect.Position, 0, Vector2.One, Vector2.Zero, Vector2.Zero, color4);
+        var instance = new InstanceData(rect.Position, 0, Vec2.One, Vec2.Zero, Vec2.Zero, color);
 
         _instances.Add(instance);
     }
 
-    public void Draw(Texture texture, Sampler sampler, Vector2 position, float rotation, Vector2 scale, Vector2 origin, Vector2 shear)
+    public void Draw(Texture texture, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
         var instance = new InstanceData(position, rotation, scale, origin, shear, Colors.White, texture, sampler);
         _instances.Add(instance);
     }
 
-    public void Draw(Texture texture, Sampler sampler, Vector2 position)
+    public void Draw(Texture texture, Sampler sampler, Vec2 position)
     {
-        Draw(texture, sampler, position, 0, Vector2.One, Vector2.Zero, Vector2.Zero);
+        Draw(texture, sampler, position, 0, Vec2.One, Vec2.Zero, Vec2.Zero);
     }
 
     public void Draw(Texture texture, Sampler sampler = Sampler.NearestRepeat, float x = 0, float y = 0, float r = 0, float sx = 1, float sy = 1, float ox = 0, float oy = 0, float kx = 0, float ky = 0)
     {
-        Draw(texture, sampler, new Vector2(x, y), r, new Vector2(sx, sy), new Vector2(ox, oy), new Vector2(kx, ky));
+        Draw(texture, sampler, new Vec2(x, y), r, new Vec2(sx, sy), new Vec2(ox, oy), new Vec2(kx, ky));
     }
 
-    public void Draw(Texture texture, Rect quad, Sampler sampler, Vector2 position, float rotation, Vector2 scale, Vector2 origin, Vector2 shear)
+    public void Draw(Texture texture, Rect quad, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
         var instance = new InstanceData(quad, position, rotation, scale, origin, shear, Colors.White, texture, sampler);
         _instances.Add(instance);
     }
 
-    public void Draw(Texture texture, Rect quad, Sampler sampler, Vector2 position)
+    public void Draw(Texture texture, Rect quad, Sampler sampler, Vec2 position)
     {
-        Draw(texture, quad, sampler, position, 0, Vector2.One, Vector2.Zero, Vector2.Zero);
+        Draw(texture, quad, sampler, position, 0, Vec2.One, Vec2.Zero, Vec2.Zero);
     }
 
     public void Draw(Texture texture, Rect quad, Sampler sampler = Sampler.NearestRepeat, float x = 0, float y = 0, float r = 0, float sx = 1, float sy = 1, float ox = 0, float oy = 0, float kx = 0, float ky = 0)
     {
-        Draw(texture, quad, sampler, new Vector2(x, y), r, new Vector2(sx, sy), new Vector2(ox, oy), new Vector2(kx, ky));
+        Draw(texture, quad, sampler, new Vec2(x, y), r, new Vec2(sx, sy), new Vec2(ox, oy), new Vec2(kx, ky));
     }
 }

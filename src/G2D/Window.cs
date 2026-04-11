@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using SDL;
-using Vortice.Mathematics;
 
 namespace G2D;
 
@@ -74,24 +73,24 @@ public sealed unsafe class Window : IDisposable
         SDL3.SDL_RestoreWindow(_handle);
     }
 
-    public SizeI GetExtent()
+    public (int, int) GetExtent()
     {
         int w, h;
         SDL3.SDL_GetWindowSize(_handle, &w, &h);
-        return new SizeI(w, h);
+        return (w, h);
     }
 
-    public Int2 GetPosition()
+    public (int, int) GetPosition()
     {
         int x, y;
         SDL3.SDL_GetWindowPosition(_handle, &x, &y);
-        return new Int2(x, y);
+        return (x, y);
     }
 
 
-    public void Move(Int2 location)
+    public void Move(int x, int y)
     {
-        SDL3.SDL_SetWindowPosition(_handle, location.X, location.Y);
+        SDL3.SDL_SetWindowPosition(_handle, x, y);
     }
 
     public void HideCursor()

@@ -1,6 +1,5 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
-using Vortice.Mathematics;
+﻿using System.Runtime.InteropServices;
+using G2D.Mathematics;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -8,25 +7,25 @@ namespace G2D;
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct InstanceData
 {
-    public Vector2 Translation = Vector2.Zero;
+    public Vec2 Translation = Vec2.Zero;
 
     public float Rotation = 0;
 
-    public Vector2 Scale = Vector2.One;
+    public Vec2 Scale = Vec2.One;
 
-    public Vector2 OriginOffset = Vector2.Zero;
+    public Vec2 OriginOffset = Vec2.Zero;
 
-    public Vector2 Shear = Vector2.Zero;
+    public Vec2 Shear = Vec2.Zero;
 
-    public Vector4 Color4 = Colors.White;
+    public Vec4 Color4 = Colors.White;
 
-    public Vector2 TextureScale = Vector2.One;
+    public Vec2 TextureScale = Vec2.One;
 
-    public Vector2 TextureOffset = Vector2.Zero;
+    public Vec2 TextureOffset = Vec2.Zero;
 
     private fixed uint TextureSamplerIndices[15];
 
-    public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4)
+    public InstanceData(Vec2 t, float r, Vec2 s, Vec2 o, Vec2 k, Vec4 color4)
     {
         Translation = t;
         Rotation = r;
@@ -34,34 +33,34 @@ internal unsafe struct InstanceData
         OriginOffset = o;
         Shear = k;
         Color4 = color4;
-        TextureScale = Vector2.One;
-        TextureOffset = Vector2.Zero;
+        TextureScale = Vec2.One;
+        TextureOffset = Vec2.Zero;
         TextureSamplerIndices[0] = 0;
     }
 
-    public InstanceData(Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4, Texture texture, Sampler sampler)
+    public InstanceData(Vec2 t, float r, Vec2 s, Vec2 o, Vec2 k, Vec4 color4, Texture texture, Sampler sampler)
     {
         Translation = t;
         Rotation = r;
-        Scale = s * texture.Size.ToVector2();
+        Scale = s * new Vec2(texture.Size.Width, texture.Size.Height);
         OriginOffset = o;
         Shear = k;
         Color4 = color4;
-        TextureScale = Vector2.One;
-        TextureOffset = Vector2.Zero;
+        TextureScale = Vec2.One;
+        TextureOffset = Vec2.Zero;
         SetTextureSampler(0, (uint)texture.Index, (uint)sampler);
     }
 
-    public InstanceData(Rect quad, Vector2 t, float r, Vector2 s, Vector2 o, Vector2 k, Vector4 color4, Texture texture, Sampler sampler)
+    public InstanceData(Rect quad, Vec2 t, float r, Vec2 s, Vec2 o, Vec2 k, Vec4 color4, Texture texture, Sampler sampler)
     {
         Translation = t;
         Rotation = r;
-        Scale = s * quad.Size.ToVector2();
+        Scale = s * new Vec2(quad.Width, quad.Height);
         OriginOffset = o;
         Shear = k;
         Color4 = color4;
-        TextureScale = quad.Size.ToVector2() / texture.Size.ToVector2();
-        TextureOffset = quad.Position / texture.Size.ToVector2();
+        TextureScale = new Vec2(quad.Width, quad.Height) / new Vec2(texture.Size.Width, texture.Size.Height);
+        TextureOffset = quad.Position / texture.Size;
         SetTextureSampler(0, (uint)texture.Index, (uint)sampler);
     }
 

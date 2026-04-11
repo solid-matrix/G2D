@@ -1,18 +1,18 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
+using G2D.Mathematics;
 
 namespace G2D;
 
 [StructLayout(LayoutKind.Sequential, Pack = 16)]
 internal struct Uniform
 {
-    public Matrix4x4 View;
+    public Mat4 View;
 
-    public Vector4 Color;
+    public Vec4 Color;
 
-    public Vector2 Resolution;
+    public Vec2 Resolution;
 
-    public Vector2 MousePosition;
+    public Vec2 MousePosition;
 
     public float Time;
 }

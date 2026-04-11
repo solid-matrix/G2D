@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.InteropServices;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct Color32(byte R, byte G, byte B, byte A = 255)

@@ -1,5 +1,5 @@
-﻿using SDL;
-using Vortice.Mathematics;
+﻿using G2D.Mathematics;
+using SDL;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -20,7 +20,7 @@ internal unsafe class TextureManager : IDisposable
 
     internal readonly List<VmaAllocation> _allocation = [];
 
-    internal readonly List<Size> _extents = [];
+    internal readonly List<Size2> _extents = [];
 
     internal readonly Queue<int> _recycledIndices = [];
 
@@ -70,7 +70,7 @@ internal unsafe class TextureManager : IDisposable
         return CreateTexture(image, allocation, extent);
     }
 
-    internal Texture CreateTexture(VkImage image, VmaAllocation allocation, Size extent)
+    internal Texture CreateTexture(VkImage image, VmaAllocation allocation, Size2 extent)
     {
         var info = new VkImageViewCreateInfo
         {
@@ -121,7 +121,7 @@ internal unsafe class TextureManager : IDisposable
         _allocation[i] = VmaAllocation.Null;
     }
 
-    private (VkImage, VmaAllocation, Size) InternalCreateTextureFromRawImage(ReadOnlySpan<byte> raw)
+    private (VkImage, VmaAllocation, Size2) InternalCreateTextureFromRawImage(ReadOnlySpan<byte> raw)
     {
         SDL_Surface* surface;
 
@@ -148,7 +148,7 @@ internal unsafe class TextureManager : IDisposable
     }
 
 
-    private (VkImage, VmaAllocation, Size) InternalCreateTextureFromRgbaData(ReadOnlySpan<byte> data, uint width, uint height)
+    private (VkImage, VmaAllocation, Size2) InternalCreateTextureFromRgbaData(ReadOnlySpan<byte> data, uint width, uint height)
     {
         // allocate staging buffer
         var stagingBufferInfo = new VkBufferCreateInfo
@@ -259,7 +259,7 @@ internal unsafe class TextureManager : IDisposable
         _device.Api.vkFreeCommandBuffers(_device.GraphicsCommandPool, commandBuffer);
         Vma.vmaDestroyBuffer(_device.Allocator, stagingBuffer, stagingAllocation);
 
-        return (image, imageAllocation, new Size((int)width, (int)height));
+        return (image, imageAllocation, new Size2((int)width, (int)height));
     }
 
 

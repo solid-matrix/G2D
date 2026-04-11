@@ -1,6 +1,14 @@
-﻿namespace G2D;
+﻿namespace G2D.Mathematics;
 
-public struct Vec2I
+public readonly struct Vec2I
 {
-    // TODO
+    public readonly int X;
+
+    public readonly int Y;
+
+    public Vec2I(int x, int y)
+    {
+        X = x;
+        Y = y;
+    }
 }

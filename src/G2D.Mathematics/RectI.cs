@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 public readonly record struct RectI(int X, int Y, int Width, int Height)
 {
@@ -8,7 +8,7 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
     {
     }
 
-    public RectI(Vector2I location, SizeI size) : this(location.X, location.Y, size.Width, size.Height)
+    public RectI(Vector2I location, Size2I size2) : this(location.X, location.Y, size2.Width, size2.Height)
     {
     }
 
@@ -22,7 +22,7 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
 
     public Vector2I Location => new(X, Y);
 
-    public SizeI Size => new(Width, Height);
+    public Size2I Size2 => new(Width, Height);
 
     public Vector2I Center => new(X + Width / 2, Y + Height / 2);
 

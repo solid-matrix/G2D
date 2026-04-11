@@ -1,5 +1,4 @@
-﻿using Vortice.Mathematics;
-using Vortice.Vulkan;
+﻿using Vortice.Vulkan;
 
 namespace G2D;
 
@@ -67,8 +66,8 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         _images = [];
         _imageViews = [];
 
-        var actualExtent = _window.IsMinimized() ? SizeI.Empty : _window.GetExtent();
-        if (actualExtent.Width * actualExtent.Height == 0) return;
+        var (actualWidth, actualHeight) = _window.IsMinimized() ? (0, 0) : _window.GetExtent();
+        if (actualWidth == 0 || actualHeight == 0) return;
 
         var capabilities = _device.Instance.GetPhysicalDeviceSurfaceCapabilities(_device.PhysicalDevice, _surface);
         var formats = _device.Instance.GetPhysicalDeviceSurfaceFormats(_device.PhysicalDevice, _surface);
@@ -80,7 +79,7 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
         _presentMode = ChoosePresentMode(presentModes);
 
-        _extent = ChooseExtent(capabilities, new VkExtent2D(actualExtent.Width, actualExtent.Height));
+        _extent = ChooseExtent(capabilities, new VkExtent2D(actualWidth, actualHeight));
         if (_extent.width == 0 || _extent.height == 0) return;
 
 

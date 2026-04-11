@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 public readonly struct Vec3 : IEquatable<Vec3>, IFormattable
 {

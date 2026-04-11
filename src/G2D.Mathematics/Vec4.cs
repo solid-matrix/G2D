@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
 {
@@ -76,11 +76,6 @@ public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
     public static Vec4 UnitW => new(Vector4.UnitW);
 
     public static Vec4 Zero => new(Vector4.Zero);
-
-    public static implicit operator Vec4(Vector4 v)
-    {
-        return new Vec4(v);
-    }
 
     public static Vec4 operator +(Vec4 left, Vec4 right)
     {
@@ -716,5 +711,15 @@ public readonly struct Vec4 : IEquatable<Vec4>, IFormattable
     public readonly string ToString([StringSyntax(StringSyntaxAttribute.NumericFormat)] string? format, IFormatProvider? formatProvider)
     {
         return _inner.ToString(format, formatProvider);
+    }
+
+    public static implicit operator Vec4(Vector4 v)
+    {
+        return new Vec4(v);
+    }
+
+    public static implicit operator Vector4(Vec4 v)
+    {
+        return v._inner;
     }
 }

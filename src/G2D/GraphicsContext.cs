@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Vortice.Mathematics;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -60,7 +59,7 @@ public sealed unsafe class GraphicsContext : IDisposable
 
     internal readonly VkSemaphore[] _releaseSemaphores;
 
-    internal Color4 ClearColor4 = new();
+    internal VkClearColorValue ClearColor = new();
 
 
     internal GraphicsContext(Window window, string appName, Version appVersion, string engineName, Version engineVersion, bool debugEnabled = false)
@@ -284,7 +283,7 @@ public sealed unsafe class GraphicsContext : IDisposable
             imageLayout = VkImageLayout.ColorAttachmentOptimal,
             loadOp = VkAttachmentLoadOp.Clear,
             storeOp = VkAttachmentStoreOp.Store,
-            clearValue = new VkClearValue(ClearColor4.R, ClearColor4.G, ClearColor4.B, ClearColor4.A)
+            clearValue = new VkClearValue(ClearColor)
         };
 
         VkRenderingInfo renderingInfo = new()

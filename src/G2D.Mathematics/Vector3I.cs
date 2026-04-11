@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace G2D;
+namespace G2D.Mathematics;
 
 public readonly record struct Vector3I(int X, int Y, int Z)
 {

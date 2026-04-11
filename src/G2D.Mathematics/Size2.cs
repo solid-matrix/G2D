@@ -1,6 +1,4 @@
-using System.Numerics;
-
-namespace G2D;
+namespace G2D.Mathematics;
 
 public readonly record struct Size2(float Width, float Height)
 {
@@ -89,13 +87,13 @@ public readonly record struct Size2(float Width, float Height)
         return new Size2(left.Width / right, left.Height / right);
     }
 
-    public static explicit operator SizeI(Size2 value)
+    public static explicit operator Size2I(Size2 value)
     {
-        return new SizeI((int)value.Width, (int)value.Height);
+        return new Size2I((int)value.Width, (int)value.Height);
     }
 
-    public static implicit operator Vector2(Size2 value)
+    public static implicit operator Vec2(Size2 value)
     {
-        return new Vector2(value.Width, value.Height);
+        return new Vec2(value.Width, value.Height);
     }
 }

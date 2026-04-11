@@ -1,6 +1,5 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
-using Vortice.Mathematics;
+﻿using System.Runtime.InteropServices;
+using G2D.Mathematics;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -8,26 +7,26 @@ namespace G2D;
 [StructLayout(LayoutKind.Sequential)]
 internal record struct Vertex
 {
-    public Vector2 Position;
-    public Vector2 TexCoord;
-    public Vector4 Color4;
+    public Vec2 Position;
+    public Vec2 TexCoord;
+    public Vec4 Color;
 
-    public Vertex(Vector2 position, Vector2 texCoord, Vector4 color4)
+    public Vertex(Vec2 position, Vec2 texCoord, Vec4 color)
     {
         Position = position;
         TexCoord = texCoord;
-        Color4 = color4;
+        Color = color;
     }
 
-    public Vertex(float x, float y, float u, float v, Color4 color4) : this(new Vector2(x, y), new Vector2(u, v), color4)
+    public Vertex(float x, float y, float u, float v, Color color) : this(new Vec2(x, y), new Vec2(u, v), color)
     {
     }
 
-    public Vertex(float x, float y, Color4 color4) : this(new Vector2(x, y), new Vector2(0, 0), color4)
+    public Vertex(float x, float y, Color color) : this(new Vec2(x, y), new Vec2(0, 0), color)
     {
     }
 
-    public Vertex(float x, float y) : this(new Vector2(x, y), new Vector2(0, 0), Colors.Transparent)
+    public Vertex(float x, float y) : this(new Vec2(x, y), new Vec2(0, 0), Colors.Transparent)
     {
     }
 
@@ -67,7 +66,7 @@ internal record struct Vertex
                 binding = 0,
                 location = 2,
                 format = VkFormat.R32G32B32A32Sfloat,
-                offset = (uint)Marshal.OffsetOf<Vertex>(nameof(Color4))
+                offset = (uint)Marshal.OffsetOf<Vertex>(nameof(Color))
             }
         ];
     }

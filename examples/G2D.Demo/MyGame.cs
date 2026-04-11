@@ -1,5 +1,4 @@
-using System.Numerics;
-using Vortice.Mathematics;
+using G2D.Mathematics;
 
 namespace G2D.Demo;
 
@@ -53,7 +52,7 @@ internal class MyGame : Game
     {
         _renderFps.Update();
 
-        var pos = Graphics.Viewport.ToVector2() / 2 - new Vector2(80, 80) / 2;
+        var pos = Graphics.Viewport / 2 - new Vec2(80, 80) / 2;
 
         if (_count < 20)
             Graphics.Draw(_texture, new Rect(20, 0, 20, 20), Sampler.NearestRepeat, pos.X, pos.Y, 0, 4, 4);
