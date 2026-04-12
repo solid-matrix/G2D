@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using Vortice.Vulkan;
+﻿using Vortice.Vulkan;
 
 namespace G2D;
 
@@ -15,100 +14,26 @@ internal unsafe class GraphicsLayout : IDisposable
 
     private static readonly VkVertexInputBindingDescription[] VertexBindings =
     [
-        new()
-        {
-            binding = 0,
-            stride = (uint)sizeof(VertexStruct),
-            inputRate = VkVertexInputRate.Vertex
-        },
-        new()
-        {
-            binding = 1,
-            stride = (uint)sizeof(InstanceStruct),
-            inputRate = VkVertexInputRate.Instance
-        }
+        new(sizeof(VertexStruct), VkVertexInputRate.Vertex, 0),
+        new(sizeof(InstanceStruct), VkVertexInputRate.Instance, 1)
     ];
 
     private static readonly VkVertexInputAttributeDescription[] VertexAttributes =
     [
-        new()
-        {
-            binding = 0,
-            location = 0,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<VertexStruct>(nameof(VertexStruct.Position))
-        },
-        new()
-        {
-            binding = 0,
-            location = 1,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<VertexStruct>(nameof(VertexStruct.TexCoord))
-        },
-        new()
-        {
-            binding = 0,
-            location = 2,
-            format = VkFormat.R32G32B32A32Sfloat,
-            offset = (uint)Marshal.OffsetOf<VertexStruct>(nameof(VertexStruct.Color))
-        },
-        new()
-        {
-            binding = 1,
-            location = 3,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.ModelTransform))
-        },
-        new()
-        {
-            binding = 1,
-            location = 4,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.ModelTransform)) + 2 * (uint)sizeof(float)
-        },
-        new()
-        {
-            binding = 1,
-            location = 5,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.ModelTransform)) + 4 * (uint)sizeof(float)
-        },
+        // Vertex Struct
+        new(0, VkFormat.R32G32Sfloat, 0, 0), // Position
+        new(1, VkFormat.R32G32Sfloat, 8, 0), // TexCoord 
+        new(2, VkFormat.R32G32B32A32Sfloat, 16, 0), // Color
 
-        new()
-        {
-            binding = 1,
-            location = 6,
-            format = VkFormat.R32G32B32A32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.Color))
-        },
-        new()
-        {
-            binding = 1,
-            location = 7,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.TextureOffset))
-        },
-        new()
-        {
-            binding = 1,
-            location = 8,
-            format = VkFormat.R32G32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.TextureScale))
-        },
-        new()
-        {
-            binding = 1,
-            location = 9,
-            format = VkFormat.R32Sfloat,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.Layer))
-        },
-        new()
-        {
-            binding = 1,
-            location = 10,
-            format = VkFormat.R32Uint,
-            offset = (uint)Marshal.OffsetOf<InstanceStruct>(nameof(InstanceStruct.TextureSamplerIndex))
-        }
+        // Instance Struct
+        new(3, VkFormat.R32G32Sfloat, 0, 1), // ModelTransform Col0
+        new(4, VkFormat.R32G32Sfloat, 8, 1), //
+        new(5, VkFormat.R32G32Sfloat, 16, 1), // 
+        new(6, VkFormat.R32G32B32A32Sfloat, 24, 1), // Color
+        new(7, VkFormat.R32G32Sfloat, 40, 1), // TextureOffset
+        new(8, VkFormat.R32G32Sfloat, 48, 1), // TextureScale
+        new(9, VkFormat.R32Sfloat, 56, 1), // Layer
+        new(10, VkFormat.R32Uint, 60, 1) // TextureSamplerIndex
     ];
 
     private static readonly VkDynamicState[] DynamicStates =

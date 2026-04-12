@@ -4,13 +4,13 @@ namespace G2D;
 
 internal struct DrawSessionState
 {
-    internal VkCommandBuffer _commandBuffer;
+    public VkCommandBuffer _commandBuffer;
 
-    internal VkExtent2D _extent;
+    public VkExtent2D _extent;
 
-    internal UniformBuffer _uniformBuffer;
+    public UniformBuffer _uniformBuffer;
 
-    internal BufferSpanPool _vertexBufferPool;
+    public BufferSpanPool _vertexBufferPool;
 
-    internal BufferSpanPool _instanceBufferPool;
+    public BufferSpanPool _instanceBufferPool;
 }

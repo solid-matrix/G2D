@@ -88,7 +88,7 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         _frameCountInFlight = Math.Min(_swapchain.ImageCount, MaxFrameCountInFlight);
 
-        // Graphics Shader Manager
+        // Graphics Layout
         _graphicsLayout = new GraphicsLayout(_device, _swapchain.Format);
 
         // Create DescriptorPool
