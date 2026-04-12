@@ -82,7 +82,7 @@ public readonly struct Mat3X3 : IEquatable<Mat3X3>
         0 => _c0,
         1 => _c1,
         2 => _c2,
-        _ => throw new ArgumentOutOfRangeException(nameof(col), col, null)
+        _ => throw new IndexOutOfRangeException(nameof(col))
     };
 
     public float this[int col, int row] => this[col][row];
@@ -356,5 +356,11 @@ public readonly struct Mat3X3 : IEquatable<Mat3X3>
     public override int GetHashCode()
     {
         return HashCode.Combine(_c0, _c1, _c2);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Mat3X2 TrimTo3X2()
+    {
+        return new Mat3X2(M00, M01, M10, M11, M20, M21);
     }
 }

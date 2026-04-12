@@ -22,6 +22,8 @@ public class Config
 
     public bool WindowFullscreen { get; set; } = false;
 
+    public bool WindowHideCursor { get; set; } = false;
+
     public bool DebugMode { get; set; } = false;
 
     public bool VSync { get; set; } = true;

@@ -10,19 +10,19 @@ public unsafe class Graphics
 {
     private static readonly Vertex[] UnitRectVertices =
     [
-        new(new Vec2(0, 0), new Vec2(0, 0), Colors.White), // 0 
-        new(new Vec2(1, 0), new Vec2(1, 0), Colors.White), // 1
-        new(new Vec2(0, 1), new Vec2(0, 1), Colors.White), // 2
-        new(new Vec2(0, 1), new Vec2(0, 1), Colors.White), // 2
-        new(new Vec2(1, 0), new Vec2(1, 0), Colors.White), // 1
-        new(new Vec2(1, 1), new Vec2(1, 1), Colors.White) // 3
+        new(new Vec2(-0.5F, -0.5F), new Vec2(0, 0), Colors.White), // 0 
+        new(new Vec2(0.5F, -0.5F), new Vec2(1, 0), Colors.White), // 1
+        new(new Vec2(-0.5F, 0.5F), new Vec2(0, 1), Colors.White), // 2
+        new(new Vec2(-0.5F, 0.5F), new Vec2(0, 1), Colors.White), // 2
+        new(new Vec2(0.5F, -0.5F), new Vec2(1, 0), Colors.White), // 1
+        new(new Vec2(0.5F, 0.5F), new Vec2(1, 1), Colors.White) // 3
     ];
 
     private readonly GraphicsContext _context;
 
     private DrawSessionState _sessionState;
 
-    private Size2 _viewport;
+    private Rect _viewport;
 
     private GraphicsPipeline? _currentPipeline;
 
@@ -38,7 +38,7 @@ public unsafe class Graphics
 
     internal VkDeviceApi Api => _context.Api;
 
-    public Size2 Viewport => _viewport;
+    public Rect Viewport => _viewport;
 
     internal ref Uniform Uniform => ref Unsafe.AsRef<Uniform>((void*)_sessionState._uniformBuffer.Pointer);
 
@@ -91,7 +91,7 @@ public unsafe class Graphics
     internal void BeginSession(DrawSessionState sessionState)
     {
         _sessionState = sessionState;
-        _viewport = new Size2(_sessionState._extent.width, _sessionState._extent.height);
+        _viewport = new Rect(0, 0, _sessionState._extent.width, _sessionState._extent.height);
         Uniform.View = Mat3X4.Identity;
         Uniform.Color = Colors.White;
         Uniform.Resolution = new Vector2(_viewport.Width, _viewport.Height);
@@ -122,40 +122,42 @@ public unsafe class Graphics
 
     public void Draw(Rect rect, Color color)
     {
-        var instance = new InstanceData(rect.Position, 0, Vec2.One, Vec2.Zero, Vec2.Zero, color);
+        var instance = new InstanceData
+        {
+            ModelTransform = Mat3X2.CreateAffine(rect.Position, 0, rect.Size, Vec2.Zero, Vec2.Zero),
+            Color = Colors.White,
+            TextureOffset = Vec2.Zero,
+            TextureScale = Vec2.One,
+            Layer = 0,
+            TextureSamplerIndex = 0
+        };
 
         _instances.Add(instance);
     }
 
     public void Draw(Texture texture, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
-        var instance = new InstanceData(position, rotation, scale, origin, shear, Colors.White, texture, sampler);
+        var instance = new InstanceData
+        {
+            ModelTransform = Mat3X2.CreateAffine(position, rotation, scale * texture.Size, origin / texture.Size, shear), Color = Colors.White,
+            TextureOffset = Vec2.Zero,
+            TextureScale = Vec2.One,
+            Layer = 0,
+            TextureSamplerIndex = ((uint)texture.Index << 16) | (uint)sampler
+        };
         _instances.Add(instance);
-    }
-
-    public void Draw(Texture texture, Sampler sampler, Vec2 position)
-    {
-        Draw(texture, sampler, position, 0, Vec2.One, Vec2.Zero, Vec2.Zero);
-    }
-
-    public void Draw(Texture texture, Sampler sampler = Sampler.NearestRepeat, float x = 0, float y = 0, float r = 0, float sx = 1, float sy = 1, float ox = 0, float oy = 0, float kx = 0, float ky = 0)
-    {
-        Draw(texture, sampler, new Vec2(x, y), r, new Vec2(sx, sy), new Vec2(ox, oy), new Vec2(kx, ky));
     }
 
     public void Draw(Texture texture, Rect quad, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
-        var instance = new InstanceData(quad, position, rotation, scale, origin, shear, Colors.White, texture, sampler);
+        var instance = new InstanceData
+        {
+            ModelTransform = Mat3X2.CreateAffine(position, rotation, scale * quad.Size, origin / quad.Size, shear), Color = Colors.White,
+            TextureOffset = quad.Position,
+            TextureScale = quad.Size / texture.Size,
+            Layer = 0,
+            TextureSamplerIndex = ((uint)texture.Index << 16) | (uint)sampler
+        };
         _instances.Add(instance);
-    }
-
-    public void Draw(Texture texture, Rect quad, Sampler sampler, Vec2 position)
-    {
-        Draw(texture, quad, sampler, position, 0, Vec2.One, Vec2.Zero, Vec2.Zero);
-    }
-
-    public void Draw(Texture texture, Rect quad, Sampler sampler = Sampler.NearestRepeat, float x = 0, float y = 0, float r = 0, float sx = 1, float sy = 1, float ox = 0, float oy = 0, float kx = 0, float ky = 0)
-    {
-        Draw(texture, quad, sampler, new Vec2(x, y), r, new Vec2(sx, sy), new Vec2(ox, oy), new Vec2(kx, ky));
     }
 }

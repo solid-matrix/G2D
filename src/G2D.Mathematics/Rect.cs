@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace G2D.Mathematics;
 
 public readonly record struct Rect(float X, float Y, float Width, float Height)
@@ -8,7 +6,7 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
     {
     }
 
-    public Rect(Vector2 location, Size2 size2) : this(location.X, location.Y, size2.Width, size2.Height)
+    public Rect(Vec2 location, Size2 size2) : this(location.X, location.Y, size2.Width, size2.Height)
     {
     }
 
@@ -24,7 +22,7 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
 
     public Size2 Size => new(Width, Height);
 
-    public Vector2 Center => new(X + Width / 2f, Y + Height / 2f);
+    public Vec2 Center => new(X + Width / 2f, Y + Height / 2f);
 
     public bool Contains(int x, int y)
     {
@@ -41,7 +39,7 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
         return X <= x && x < X + Width && Y <= y && y < Y + Height;
     }
 
-    public bool Contains(Vector2 value)
+    public bool Contains(Vec2 value)
     {
         return X <= value.X && value.X < X + Width && Y <= value.Y && value.Y < Y + Height;
     }

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace G2D.Demo;
+namespace G2D.Examples.Demo1;
 
 public class FpsCounter
 {

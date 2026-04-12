@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="examples/G2D.Demo/G2D.Demo.csproj" />
+  <Project Path="examples/G2D.Examples.Demo1/G2D.Examples.Demo1.csproj" />
   <Project Path="src/G2D.Ecs/G2D.Ecs.csproj" />
   <Project Path="src/G2D.Mathematics/G2D.Mathematics.csproj" />
   <Project Path="src/G2D.Nodes/G2D.Nodes.csproj" />

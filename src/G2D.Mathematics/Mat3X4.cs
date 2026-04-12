@@ -96,7 +96,7 @@ public readonly struct Mat3X4 : IEquatable<Mat3X4>
         0 => _c0,
         1 => _c1,
         2 => _c2,
-        _ => throw new ArgumentOutOfRangeException(nameof(col), col, null)
+        _ => throw new IndexOutOfRangeException(nameof(col))
     };
 
     public float this[int col, int row] => this[col][row];

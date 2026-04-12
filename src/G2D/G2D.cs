@@ -76,6 +76,8 @@ public static unsafe class G2D
             | (config.WindowFullscreen ? WindowFlags.Fullscreen : WindowFlags.None)
         );
 
+        if (config.WindowHideCursor) _window.HideCursor();
+
         if (config.VSync)
             _timer = new StepTimer(config.UpdateFrequency, _window.GetDisplayRefreshRate());
         else if (config.MaxRenderFrequency <= 0)
