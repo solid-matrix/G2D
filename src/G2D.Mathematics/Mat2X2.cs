@@ -1,6 +1,5 @@
 ﻿namespace G2D.Mathematics;
 
-public struct RectU
+public struct Mat2X2
 {
-    // TODO
 }

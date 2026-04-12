@@ -8,7 +8,7 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
     {
     }
 
-    public RectI(Vector2I location, Size2I size2) : this(location.X, location.Y, size2.Width, size2.Height)
+    public RectI(Vec2I location, Size2I size2) : this(location.X, location.Y, size2.Width, size2.Height)
     {
     }
 
@@ -20,18 +20,18 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
 
     public int Bottom => Y + Height;
 
-    public Vector2I Location => new(X, Y);
+    public Vec2I Location => new(X, Y);
 
     public Size2I Size2 => new(Width, Height);
 
-    public Vector2I Center => new(X + Width / 2, Y + Height / 2);
+    public Vec2I Center => new(X + Width / 2, Y + Height / 2);
 
     public bool Contains(int x, int y)
     {
         return X <= x && x < X + Width && Y <= y && y < Y + Height;
     }
 
-    public bool Contains(Vector2I value)
+    public bool Contains(Vec2I value)
     {
         return X <= value.X && value.X < X + Width && Y <= value.Y && value.Y < Y + Height;
     }

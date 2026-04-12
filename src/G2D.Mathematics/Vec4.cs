@@ -580,6 +580,18 @@ public readonly struct Vec4 : IEquatable<Vec4>
     }
 
     /// <summary>
+    ///     Computes the cross product of two 4D vectors.
+    /// </summary>
+    /// <param name="vector1">The first vector.</param>
+    /// <param name="vector2">The second vector.</param>
+    /// <returns>The cross product vector.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vec4 Cross(in Vec4 vector1, in Vec4 vector2)
+    {
+        return Vector4.Cross(vector1._inner, vector2._inner);
+    }
+
+    /// <summary>
     ///     Converts angles from degrees to radians for each component.
     /// </summary>
     /// <param name="degrees">The vector containing angles in degrees.</param>
