@@ -91,7 +91,7 @@ public static unsafe class G2D
             config.EngineName, config.EngineVersion,
             config.DebugMode);
         _graphics = new Graphics(_graphicsContext);
-        _assets = new Assets(_graphicsContext._textureManager);
+        _assets = new Assets(_graphicsContext._textureCollection);
         _keyboard = new Keyboard();
         _mouse = new Mouse();
         _gamePad = new GamePad();

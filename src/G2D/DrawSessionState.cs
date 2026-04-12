@@ -8,7 +8,7 @@ internal struct DrawSessionState
 
     internal VkExtent2D _extent;
 
-    internal BufferSpan _uniformBuffer;
+    internal UniformBuffer _uniformBuffer;
 
     internal BufferSpanPool _vertexBufferPool;
 

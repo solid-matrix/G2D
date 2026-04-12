@@ -5,57 +5,52 @@ namespace G2D;
 
 public sealed unsafe class GraphicsContext : IDisposable
 {
-    internal const uint MaxFrameCountInFlight = 3;
+    private const uint MaxFrameCountInFlight = 3;
 
-    internal const uint PushConstantRange = 128;
+    private static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
-    internal static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
+    private readonly Window _window;
 
-    internal readonly Window _window;
+    private readonly VulkanInstance _instance;
 
-    internal readonly VulkanInstance _instance;
+    private readonly VkSurfaceKHR _surface;
 
-    internal readonly VkSurfaceKHR _surface;
+    private readonly VulkanDevice _device;
 
-    internal readonly VulkanDevice _device;
-
-    internal readonly VulkanSwapchain _swapchain;
+    private readonly VulkanSwapchain _swapchain;
 
     private readonly uint _frameCountInFlight;
 
     private uint _currentFrame;
 
 
-    internal readonly VkDescriptorPool _descriptorPool;
+    private readonly VkDescriptorPool _descriptorPool;
 
 
-    internal readonly UniformBufferManager _uniformBufferManager;
+    private readonly GraphicsLayout _graphicsLayout;
 
-    internal readonly TextureManager _textureManager;
-
-    internal readonly SamplerManager _samplerManager;
+    internal readonly GraphicsShader _defaultShader;
 
 
-    private readonly VkPipelineLayout _pipelineLayout;
+    private readonly UniformBuffer[] _uniformBuffers;
 
-    private readonly GraphicsPipelineFactory _graphicsPipelineFactory;
+    internal readonly TextureCollection _textureCollection;
 
-
-    internal readonly GraphicsPipeline _defaultGraphicsPipeline;
-
-
-    internal readonly VkCommandBuffer[] _commandBuffers;
-
-    internal readonly BufferSpanPool[] _vertexBufferPools;
-
-    internal readonly BufferSpanPool[] _instanceBufferPools;
+    internal readonly SamplerCollection _samplerCollection;
 
 
-    internal readonly VkFence[] _submitFences;
+    private readonly VkCommandBuffer[] _commandBuffers;
 
-    internal readonly VkSemaphore[] _acquireSemaphores;
+    private readonly BufferSpanPool[] _vertexBufferPools;
 
-    internal readonly VkSemaphore[] _releaseSemaphores;
+    private readonly BufferSpanPool[] _instanceBufferPools;
+
+
+    private readonly VkFence[] _submitFences;
+
+    private readonly VkSemaphore[] _acquireSemaphores;
+
+    private readonly VkSemaphore[] _releaseSemaphores;
 
     internal VkClearColorValue ClearColor = new();
 
@@ -93,68 +88,37 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         _frameCountInFlight = Math.Min(_swapchain.ImageCount, MaxFrameCountInFlight);
 
+        // Graphics Shader Manager
+        _graphicsLayout = new GraphicsLayout(_device, _swapchain.Format);
+
         // Create DescriptorPool
-        VkDescriptorPoolSize[] descriptorPoolSizes =
-        [
-            new() { type = VkDescriptorType.UniformBuffer, descriptorCount = UniformBufferManager.PerFrameUniformBufferCount * _frameCountInFlight },
-            new() { type = VkDescriptorType.SampledImage, descriptorCount = TextureManager.MaxImageCount },
-            new() { type = VkDescriptorType.Sampler, descriptorCount = SamplerManager.MaxSamplerCount }
-        ];
-        fixed (VkDescriptorPoolSize* pDescriptorPoolSizes = descriptorPoolSizes)
-        {
-            var descriptorPoolInfo = new VkDescriptorPoolCreateInfo
-            {
-                flags = VkDescriptorPoolCreateFlags.UpdateAfterBind,
-                poolSizeCount = (uint)descriptorPoolSizes.Length,
-                pPoolSizes = pDescriptorPoolSizes,
-                maxSets = _frameCountInFlight * 3
-            };
-            Api.vkCreateDescriptorPool(&descriptorPoolInfo, out _descriptorPool)
-                .CheckResult("failed to create descriptor pool");
-        }
+        _descriptorPool = VulkanUtilities.CreateDescriptorPool(_device,
+            _frameCountInFlight * 3,
+            GraphicsLayout.MaxUniformCount * _frameCountInFlight,
+            GraphicsLayout.MaxImageCount,
+            GraphicsLayout.MaxSamplerCount
+        );
 
-        // Create UniformBuffer Manager
-        _uniformBufferManager = new UniformBufferManager(_device, _frameCountInFlight, _descriptorPool);
-
-        // Create Image Manager
-        _textureManager = new TextureManager(_device, _descriptorPool);
-
-        // Create Sampler Manager
-        _samplerManager = new SamplerManager(_device, _descriptorPool);
-
-        // Pipeline Layout
-        VkDescriptorSetLayout[] setLayouts =
-        [
-            _uniformBufferManager.DescriptorSetLayout,
-            _textureManager.DescriptorSetLayout,
-            _samplerManager.DescriptorSetLayout
-        ];
-        VkPushConstantRange[] pushConstantRanges = [new() { stageFlags = VkShaderStageFlags.Vertex | VkShaderStageFlags.Fragment, offset = 0, size = PushConstantRange }];
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo;
-        fixed (VkDescriptorSetLayout* pDescriptorSetLayout = setLayouts)
-        fixed (VkPushConstantRange* pPushConstantRanges = pushConstantRanges)
-        {
-            pipelineLayoutInfo = new VkPipelineLayoutCreateInfo
-            {
-                setLayoutCount = (uint)setLayouts.Length,
-                pSetLayouts = pDescriptorSetLayout,
-                pushConstantRangeCount = (uint)pushConstantRanges.Length,
-                pPushConstantRanges = pPushConstantRanges
-            };
-        }
-
-        Api.vkCreatePipelineLayout(in pipelineLayoutInfo, out _pipelineLayout)
-            .CheckResult("failed to create pipeline layout");
+        // Create UniformBuffers
+        var uniformDescriptorSets = _graphicsLayout.AllocateUniformDescriptorSets(_descriptorPool, _frameCountInFlight);
+        _uniformBuffers = new UniformBuffer[_frameCountInFlight];
+        for (var i = 0; i < _frameCountInFlight; i++)
+            _uniformBuffers[i] = new UniformBuffer(_device, uniformDescriptorSets[i]);
 
 
-        // Create Graphics Pipeline Factory
-        _graphicsPipelineFactory = new GraphicsPipelineFactory(_device, _pipelineLayout, _swapchain.Format);
+        // Create Texture Collection
+        var textureDescriptorSet = _graphicsLayout.AllocateTextureDescriptorSet(_descriptorPool);
+        _textureCollection = new TextureCollection(_device, textureDescriptorSet);
 
-        // Create Common Graphics Pipeline
-        _defaultGraphicsPipeline = _graphicsPipelineFactory.Create(
+        // Create Sampler Collection
+        var samplerDescriptorSet = _graphicsLayout.AllocateSamplerDescriptorSet(_descriptorPool);
+        _samplerCollection = new SamplerCollection(_device, samplerDescriptorSet);
+
+
+        // Create Default Graphics Pipeline
+        _defaultShader = _graphicsLayout.CreateShader(
             G2D.InternalEmbedded.GetBytes("Assets/Shaders/default.vert.spv"),
             G2D.InternalEmbedded.GetBytes("Assets/Shaders/default.frag.spv")
-            //colorBlend: GraphicsPipelineColorBlendOption.Alpha
         );
 
         // Create Vertex Buffer Pool
@@ -195,22 +159,20 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         _swapchain.Dispose();
 
-        _defaultGraphicsPipeline.Dispose();
-
         for (var i = 0; i < _frameCountInFlight; i++)
         {
             _vertexBufferPools[i].Dispose();
             _instanceBufferPools[i].Dispose();
+            _uniformBuffers[i].Dispose();
         }
 
-        _uniformBufferManager.Dispose();
-        _textureManager.Dispose();
-        _samplerManager.Dispose();
+        _textureCollection.Dispose();
+        _samplerCollection.Dispose();
 
 
         Api.vkDestroyDescriptorPool(_descriptorPool);
 
-        Api.vkDestroyPipelineLayout(_pipelineLayout);
+        _graphicsLayout.Dispose();
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {
@@ -305,20 +267,20 @@ public sealed unsafe class GraphicsContext : IDisposable
         Api.vkCmdSetScissor(_commandBuffers[_currentFrame], 0, 1, &scissor);
 
         // update & bind uniform buffer descriptor set
-        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _pipelineLayout, 0, _uniformBufferManager.DescriptorSets[_currentFrame]);
+        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 0, _uniformBuffers[_currentFrame].DescriptorSet);
 
         // bind image descriptor set
-        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _pipelineLayout, 1, _textureManager.DescriptorSet);
+        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 1, _textureCollection.DescriptorSet);
 
         // bind sampler descriptor set
-        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _pipelineLayout, 2, _samplerManager.DescriptorSet);
+        Api.vkCmdBindDescriptorSets(_commandBuffers[_currentFrame], VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 2, _samplerCollection.DescriptorSet);
 
 
         var drawSession = new DrawSessionState
         {
             _extent = _swapchain.Extent,
             _commandBuffer = _commandBuffers[_currentFrame],
-            _uniformBuffer = _uniformBufferManager.Buffers[_currentFrame],
+            _uniformBuffer = _uniformBuffers[_currentFrame],
             _vertexBufferPool = _vertexBufferPools[_currentFrame],
             _instanceBufferPool = _instanceBufferPools[_currentFrame]
         };

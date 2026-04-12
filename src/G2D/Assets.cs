@@ -2,21 +2,21 @@
 
 public class Assets
 {
-    private readonly TextureManager _textureManager;
+    private readonly TextureCollection _textureCollection;
 
-    internal Assets(TextureManager textureManager)
+    internal Assets(TextureCollection textureCollection)
     {
-        _textureManager = textureManager;
+        _textureCollection = textureCollection;
     }
 
     public Texture LoadTexture(byte[] raw)
     {
-        return _textureManager.CreateTextureFromRaw(raw);
+        return _textureCollection.CreateTextureFromRaw(raw);
     }
 
     public void UnloadTexture(Texture texture)
     {
-        _textureManager.DestroyTexture(texture);
+        _textureCollection.DestroyTexture(texture);
     }
 
     public Texture[] LoadTextureAtlas(byte[] atlas, byte[] imageRaw)

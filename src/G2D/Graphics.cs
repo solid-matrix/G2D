@@ -1,5 +1,4 @@
 ﻿using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using G2D.Mathematics;
 using Vortice.Vulkan;
@@ -24,7 +23,7 @@ public unsafe class Graphics
 
     private Rect _viewport;
 
-    private GraphicsPipeline? _currentPipeline;
+    private GraphicsShader? _currentShader;
 
     private readonly List<InstanceStruct> _instances = new();
 
@@ -40,7 +39,7 @@ public unsafe class Graphics
 
     public Rect Viewport => _viewport;
 
-    internal ref UniformStruct Uniform => ref Unsafe.AsRef<UniformStruct>((void*)_sessionState._uniformBuffer.Pointer);
+    internal ref UniformStruct Uniform => ref _sessionState._uniformBuffer.Data;
 
     internal VkCommandBuffer CommandBuffer => _sessionState._commandBuffer;
 
@@ -48,7 +47,7 @@ public unsafe class Graphics
 
     internal BufferSpanPool InstanceBufferPool => _sessionState._instanceBufferPool;
 
-    internal GraphicsPipeline DefaultPipeline => _context._defaultGraphicsPipeline;
+    internal GraphicsShader DefaultShader => _context._defaultShader;
 
     public Color ClearColor4
     {
@@ -79,12 +78,12 @@ public unsafe class Graphics
         Uniform.Time = time;
     }
 
-    internal void SwitchGraphicsPipeline(GraphicsPipeline pipeline)
+    internal void SwitchGraphicsPipeline(GraphicsShader shader)
     {
-        if (_currentPipeline != pipeline)
+        if (_currentShader == null || _currentShader.Value != shader)
         {
-            Api.vkCmdBindPipeline(CommandBuffer, pipeline.BindPoint, pipeline.Pipeline);
-            _currentPipeline = pipeline;
+            Api.vkCmdBindPipeline(CommandBuffer, VkPipelineBindPoint.Graphics, shader.Pipeline);
+            _currentShader = shader;
         }
     }
 
@@ -103,12 +102,12 @@ public unsafe class Graphics
     internal void EndSession()
     {
         FlushUnitRectDraw();
-        _currentPipeline = null;
+        _currentShader = null;
     }
 
     public void FlushUnitRectDraw()
     {
-        if (_currentPipeline == null) SwitchGraphicsPipeline(DefaultPipeline);
+        SwitchGraphicsPipeline(DefaultShader);
         if (_instances.Count == 0) return;
 
         var instanceBuffer = InstanceBufferPool.AllocateUpload(CollectionsMarshal.AsSpan(_instances));

@@ -4,19 +4,19 @@ namespace G2D;
 
 public struct Texture
 {
-    internal TextureManager Manager;
+    internal TextureCollection Collection;
 
     public int Index;
 
-    public Size2 Size => Manager._extents[Index];
+    public Size2 Size => Collection._extents[Index];
 
-    public float Width => Manager._extents[Index].Width;
+    public float Width => Collection._extents[Index].Width;
 
-    public float Height => Manager._extents[Index].Height;
+    public float Height => Collection._extents[Index].Height;
 
-    internal Texture(TextureManager manager, int index)
+    internal Texture(TextureCollection collection, int index)
     {
-        Manager = manager;
+        Collection = collection;
         Index = index;
     }
 }

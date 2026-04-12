@@ -5,6 +5,30 @@ namespace G2D;
 
 internal static unsafe class VulkanUtilities
 {
+    public static VkDescriptorPool CreateDescriptorPool(VulkanDevice device, uint maxSets, uint uniformCount, uint imageCount, uint samplerCount)
+    {
+        VkDescriptorPoolSize[] descriptorPoolSizes =
+        [
+            new() { type = VkDescriptorType.UniformBuffer, descriptorCount = uniformCount },
+            new() { type = VkDescriptorType.SampledImage, descriptorCount = imageCount },
+            new() { type = VkDescriptorType.Sampler, descriptorCount = samplerCount }
+        ];
+        fixed (VkDescriptorPoolSize* pDescriptorPoolSizes = descriptorPoolSizes)
+        {
+            var descriptorPoolInfo = new VkDescriptorPoolCreateInfo
+            {
+                flags = VkDescriptorPoolCreateFlags.UpdateAfterBind,
+                poolSizeCount = (uint)descriptorPoolSizes.Length,
+                pPoolSizes = pDescriptorPoolSizes,
+                maxSets = maxSets
+            };
+            device.Api.vkCreateDescriptorPool(&descriptorPoolInfo, out var descriptorPool)
+                .CheckResult("failed to create descriptor pool");
+
+            return descriptorPool;
+        }
+    }
+
     public static void TransitionImageLayout(VulkanDevice device, VkCommandBuffer commandBuffer, VkImage image,
         VkImageLayout oldLayout, VkImageLayout newLayout,
         VkAccessFlags2 srcAccessMask, VkAccessFlags2 dstAccessMask,

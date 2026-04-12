@@ -4,13 +4,11 @@ using Vortice.Vulkan;
 
 namespace G2D;
 
-internal unsafe class TextureManager : IDisposable
+internal unsafe class TextureCollection : IDisposable
 {
-    public const uint MaxImageCount = 65536;
+    // public const uint MaxImageCount = 65536;
 
     private readonly VulkanDevice _device;
-
-    private readonly VkDescriptorSetLayout _descriptorSetLayout;
 
     private readonly VkDescriptorSet _descriptorSet;
 
@@ -24,18 +22,13 @@ internal unsafe class TextureManager : IDisposable
 
     internal readonly Queue<int> _recycledIndices = [];
 
-    public TextureManager(VulkanDevice device, VkDescriptorPool pool)
+    public TextureCollection(VulkanDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
-
-        _descriptorSetLayout = CreateDescriptorSetLayout(device);
-
-        _descriptorSet = AllocateDescriptorSet(device, _descriptorSetLayout, pool);
+        _descriptorSet = descriptorSet;
 
         Create1PixelWhiteTexture();
     }
-
-    public VkDescriptorSetLayout DescriptorSetLayout => _descriptorSetLayout;
 
     public VkDescriptorSet DescriptorSet => _descriptorSet;
 
@@ -47,8 +40,6 @@ internal unsafe class TextureManager : IDisposable
             _device.Api.vkDestroyImageView(_imagesView[i]);
             Vma.vmaDestroyImage(_device.Allocator, _images[i], _allocation[i]);
         }
-
-        _device.Api.vkDestroyDescriptorSetLayout(_descriptorSetLayout);
     }
 
     private void Create1PixelWhiteTexture()
@@ -260,50 +251,6 @@ internal unsafe class TextureManager : IDisposable
         Vma.vmaDestroyBuffer(_device.Allocator, stagingBuffer, stagingAllocation);
 
         return (image, imageAllocation, new Size2((int)width, (int)height));
-    }
-
-
-    private static VkDescriptorSetLayout CreateDescriptorSetLayout(VulkanDevice device)
-    {
-        var binding = new VkDescriptorSetLayoutBinding
-        {
-            binding = 0,
-            descriptorType = VkDescriptorType.SampledImage,
-            descriptorCount = MaxImageCount,
-            stageFlags = VkShaderStageFlags.Fragment
-        };
-        var flags = VkDescriptorBindingFlags.PartiallyBound | VkDescriptorBindingFlags.UpdateAfterBind;
-        var bindingFlags = new VkDescriptorSetLayoutBindingFlagsCreateInfo
-        {
-            bindingCount = 1,
-            pBindingFlags = &flags
-        };
-        var setLayoutInfo = new VkDescriptorSetLayoutCreateInfo
-        {
-            flags = VkDescriptorSetLayoutCreateFlags.UpdateAfterBindPool,
-            bindingCount = 1,
-            pBindings = &binding,
-            pNext = &bindingFlags
-        };
-        device.Api.vkCreateDescriptorSetLayout(&setLayoutInfo, out var descriptorSetLayout);
-
-        return descriptorSetLayout;
-    }
-
-    private static VkDescriptorSet AllocateDescriptorSet(VulkanDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool)
-    {
-        var allocate = new VkDescriptorSetAllocateInfo
-        {
-            descriptorPool = pool,
-            descriptorSetCount = 1,
-            pSetLayouts = &layout
-        };
-
-        VkDescriptorSet descriptorSet;
-
-        device.Api.vkAllocateDescriptorSets(&allocate, &descriptorSet);
-
-        return descriptorSet;
     }
 
     private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, uint index, VkImageView imageView)

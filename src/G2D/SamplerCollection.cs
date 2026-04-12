@@ -2,25 +2,18 @@
 
 namespace G2D;
 
-internal unsafe class SamplerManager : IDisposable
+internal unsafe class SamplerCollection : IDisposable
 {
-    public const uint MaxSamplerCount = 8;
-
     private readonly VulkanDevice _device;
 
     private readonly VkSampler[] _samplers;
 
-    private readonly VkDescriptorSetLayout _descriptorSetLayout;
-
     private readonly VkDescriptorSet _descriptorSet;
 
-    public SamplerManager(VulkanDevice device, VkDescriptorPool pool)
+    public SamplerCollection(VulkanDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
-
-        _descriptorSetLayout = CreateDescriptorSetLayout(device);
-
-        _descriptorSet = AllocateDescriptorSet(device, _descriptorSetLayout, pool);
+        _descriptorSet = descriptorSet;
 
         _samplers = CreateStaticSamplers(device);
 
@@ -29,20 +22,16 @@ internal unsafe class SamplerManager : IDisposable
 
     public VkSampler[] Samplers => _samplers;
 
-    public VkDescriptorSetLayout DescriptorSetLayout => _descriptorSetLayout;
-
     public VkDescriptorSet DescriptorSet => _descriptorSet;
 
     public void Dispose()
     {
         foreach (var sampler in _samplers) _device.Api.vkDestroySampler(sampler);
-
-        _device.Api.vkDestroyDescriptorSetLayout(_descriptorSetLayout);
     }
 
     private static VkSampler[] CreateStaticSamplers(VulkanDevice device)
     {
-        var samplers = new VkSampler[MaxSamplerCount];
+        var samplers = new VkSampler[8];
 
         // NearestRepeat
         var samplerInfo = new VkSamplerCreateInfo
@@ -127,47 +116,11 @@ internal unsafe class SamplerManager : IDisposable
         return samplers;
     }
 
-    private static VkDescriptorSetLayout CreateDescriptorSetLayout(VulkanDevice device)
+    private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, ReadOnlySpan<VkSampler> samplers)
     {
-        var binding = new VkDescriptorSetLayoutBinding
-        {
-            binding = 0,
-            descriptorType = VkDescriptorType.Sampler,
-            descriptorCount = MaxSamplerCount,
-            stageFlags = VkShaderStageFlags.Fragment
-        };
-        var setLayoutInfo = new VkDescriptorSetLayoutCreateInfo
-        {
-            bindingCount = 1,
-            pBindings = &binding
-        };
+        var infos = new VkDescriptorImageInfo[(uint)samplers.Length];
 
-        device.Api.vkCreateDescriptorSetLayout(&setLayoutInfo, out var samplerDescriptorSetLayout);
-
-        return samplerDescriptorSetLayout;
-    }
-
-    private static VkDescriptorSet AllocateDescriptorSet(VulkanDevice device, VkDescriptorSetLayout layout, VkDescriptorPool pool)
-    {
-        var allocate = new VkDescriptorSetAllocateInfo
-        {
-            descriptorPool = pool,
-            descriptorSetCount = 1,
-            pSetLayouts = &layout
-        };
-
-        VkDescriptorSet descriptorSet;
-
-        device.Api.vkAllocateDescriptorSets(&allocate, &descriptorSet);
-
-        return descriptorSet;
-    }
-
-    private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, VkSampler[] samplers)
-    {
-        var infos = new VkDescriptorImageInfo[MaxSamplerCount];
-
-        for (var i = 0; i < MaxSamplerCount; i++)
+        for (var i = 0; i < samplers.Length; i++)
             infos[i] = new VkDescriptorImageInfo
             {
                 sampler = samplers[i]
@@ -182,7 +135,7 @@ internal unsafe class SamplerManager : IDisposable
                 dstBinding = 0,
                 dstArrayElement = 0, // offset
                 descriptorType = VkDescriptorType.Sampler,
-                descriptorCount = MaxSamplerCount,
+                descriptorCount = (uint)samplers.Length,
                 pImageInfo = pImage
             };
         }
