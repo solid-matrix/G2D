@@ -1,15 +1,15 @@
-﻿using System.Numerics;
-
-namespace G2D.Mathematics;
+﻿namespace G2D.Mathematics;
 
 public readonly struct Mat4X4
 {
-    private readonly Matrix4x4 _inner;
+    internal readonly Vec4 _c0;
+    internal readonly Vec4 _c1;
+    internal readonly Vec4 _c2;
+    internal readonly Vec4 _c3;
 
-    internal Mat4X4(Matrix4x4 value)
+    public Mat4X4()
     {
-        _inner = value;
     }
 
-    public static Mat4X4 Identity => new(Matrix4x4.Identity);
+    // TODO
 }

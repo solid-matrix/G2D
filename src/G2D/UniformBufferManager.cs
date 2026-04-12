@@ -25,7 +25,7 @@ internal unsafe class UniformBufferManager : IDisposable
         _buffers = new BufferSpan[frameCount];
 
         for (var i = 0; i < frameCount; i++)
-            _buffers[i] = _uniformBufferSpanPool.Allocate((ulong)sizeof(Uniform));
+            _buffers[i] = _uniformBufferSpanPool.Allocate((ulong)sizeof(UniformStruct));
 
         _descriptorSetLayout = CreateDescriptorSetLayout(device);
 

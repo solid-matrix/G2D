@@ -8,7 +8,7 @@ namespace G2D;
 
 public unsafe class Graphics
 {
-    private static readonly Vertex[] UnitRectVertices =
+    private static readonly VertexStruct[] UnitRectVertices =
     [
         new(new Vec2(-0.5F, -0.5F), new Vec2(0, 0), Colors.White), // 0 
         new(new Vec2(0.5F, -0.5F), new Vec2(1, 0), Colors.White), // 1
@@ -26,7 +26,7 @@ public unsafe class Graphics
 
     private GraphicsPipeline? _currentPipeline;
 
-    private readonly List<InstanceData> _instances = new();
+    private readonly List<InstanceStruct> _instances = new();
 
     private BufferSpan _unitRectVerticesBuffer;
 
@@ -40,7 +40,7 @@ public unsafe class Graphics
 
     public Rect Viewport => _viewport;
 
-    internal ref Uniform Uniform => ref Unsafe.AsRef<Uniform>((void*)_sessionState._uniformBuffer.Pointer);
+    internal ref UniformStruct Uniform => ref Unsafe.AsRef<UniformStruct>((void*)_sessionState._uniformBuffer.Pointer);
 
     internal VkCommandBuffer CommandBuffer => _sessionState._commandBuffer;
 
@@ -122,7 +122,7 @@ public unsafe class Graphics
 
     public void Draw(Rect rect, Color color)
     {
-        var instance = new InstanceData
+        var instance = new InstanceStruct
         {
             ModelTransform = Mat3X2.CreateAffine(rect.Position, 0, rect.Size, Vec2.Zero, Vec2.Zero),
             Color = Colors.White,
@@ -137,7 +137,7 @@ public unsafe class Graphics
 
     public void Draw(Texture texture, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
-        var instance = new InstanceData
+        var instance = new InstanceStruct
         {
             ModelTransform = Mat3X2.CreateAffine(position, rotation, scale * texture.Size, origin / texture.Size, shear), Color = Colors.White,
             TextureOffset = Vec2.Zero,
@@ -150,7 +150,7 @@ public unsafe class Graphics
 
     public void Draw(Texture texture, Rect quad, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
-        var instance = new InstanceData
+        var instance = new InstanceStruct
         {
             ModelTransform = Mat3X2.CreateAffine(position, rotation, scale * quad.Size, origin / quad.Size, shear), Color = Colors.White,
             TextureOffset = quad.Position,

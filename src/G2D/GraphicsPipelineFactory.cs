@@ -19,14 +19,14 @@ internal unsafe class GraphicsPipelineFactory
 
     private static readonly VkVertexInputBindingDescription[] VertexBindings =
     [
-        ..Vertex.GetBindingDescriptions(),
-        ..InstanceData.GetBindingDescriptions()
+        ..VertexStruct.GetBindingDescriptions(),
+        ..InstanceStruct.GetBindingDescriptions()
     ];
 
     private static readonly VkVertexInputAttributeDescription[] VertexAttributes =
     [
-        ..Vertex.GetAttributeDescriptions(),
-        ..InstanceData.GetAttributeDescriptions()
+        ..VertexStruct.GetAttributeDescriptions(),
+        ..InstanceStruct.GetAttributeDescriptions()
     ];
 
     private static readonly VkPipelineInputAssemblyStateCreateInfo InputAssembly = new()

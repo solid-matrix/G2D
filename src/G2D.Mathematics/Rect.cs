@@ -1,14 +1,18 @@
 namespace G2D.Mathematics;
 
-public readonly record struct Rect(float X, float Y, float Width, float Height)
+public readonly struct Rect
 {
-    public Rect() : this(0, 0, 0, 0)
-    {
-    }
+    public readonly Vec2 Position;
 
-    public Rect(Vec2 location, Size2 size2) : this(location.X, location.Y, size2.Width, size2.Height)
-    {
-    }
+    public readonly Size2 Size;
+
+    public float X => Position.X;
+
+    public float Y => Position.Y;
+
+    public float Width => Size.Width;
+
+    public float Height => Size.Height;
 
     public float Left => X;
 
@@ -18,13 +22,28 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
 
     public float Bottom => Y + Height;
 
-    public Vec2 Position => new(X, Y);
-
-    public Size2 Size => new(Width, Height);
-
     public Vec2 Center => new(X + Width / 2f, Y + Height / 2f);
 
+    public Rect()
+    {
+    }
+
+    public Rect(Vec2 position, Size2 size)
+    {
+        Position = position;
+        Size = size;
+    }
+
+    public Rect(float x, float y, float width, float height) : this(new Vec2(x, y), new Size2(width, height))
+    {
+    }
+
     public bool Contains(int x, int y)
+    {
+        return X <= x && x < X + Width && Y <= y && y < Y + Height;
+    }
+
+    public bool Contains(float x, float y)
     {
         return X <= x && x < X + Width && Y <= y && y < Y + Height;
     }
@@ -34,23 +53,18 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
         return X <= value.X && value.X < X + Width && Y <= value.Y && value.Y < Y + Height;
     }
 
-    public bool Contains(float x, float y)
-    {
-        return X <= x && x < X + Width && Y <= y && y < Y + Height;
-    }
-
     public bool Contains(Vec2 value)
     {
         return X <= value.X && value.X < X + Width && Y <= value.Y && value.Y < Y + Height;
     }
 
-    public bool Contains(Rect value)
+    public bool Contains(RectI value)
     {
         return X <= value.X && value.X + value.Width <= X + Width && Y <= value.Y &&
                value.Y + value.Height <= Y + Height;
     }
 
-    public bool Contains(RectI value)
+    public bool Contains(Rect value)
     {
         return X <= value.X && value.X + value.Width <= X + Width && Y <= value.Y &&
                value.Y + value.Height <= Y + Height;
@@ -66,7 +80,6 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
     {
         return new Rect(X + offsetX, Y + offsetY, Width, Height);
     }
-
 
     public static bool Intersects(Rect value1, Rect value2)
     {
@@ -93,7 +106,6 @@ public readonly record struct Rect(float X, float Y, float Width, float Height)
     {
         return Intersect(this, value);
     }
-
 
     public static Rect Union(Rect value1, Rect value2)
     {

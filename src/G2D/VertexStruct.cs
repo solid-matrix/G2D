@@ -5,28 +5,28 @@ using Vortice.Vulkan;
 namespace G2D;
 
 [StructLayout(LayoutKind.Sequential)]
-internal record struct Vertex
+internal record struct VertexStruct
 {
     public Vec2 Position;
     public Vec2 TexCoord;
     public Vec4 Color;
 
-    public Vertex(Vec2 position, Vec2 texCoord, Vec4 color)
+    public VertexStruct(Vec2 position, Vec2 texCoord, Vec4 color)
     {
         Position = position;
         TexCoord = texCoord;
         Color = color;
     }
 
-    public Vertex(float x, float y, float u, float v, Color color) : this(new Vec2(x, y), new Vec2(u, v), color)
+    public VertexStruct(float x, float y, float u, float v, Color color) : this(new Vec2(x, y), new Vec2(u, v), color)
     {
     }
 
-    public Vertex(float x, float y, Color color) : this(new Vec2(x, y), new Vec2(0, 0), color)
+    public VertexStruct(float x, float y, Color color) : this(new Vec2(x, y), new Vec2(0, 0), color)
     {
     }
 
-    public Vertex(float x, float y) : this(new Vec2(x, y), new Vec2(0, 0), Colors.Transparent)
+    public VertexStruct(float x, float y) : this(new Vec2(x, y), new Vec2(0, 0), Colors.Transparent)
     {
     }
 
@@ -37,7 +37,7 @@ internal record struct Vertex
             new VkVertexInputBindingDescription
             {
                 binding = 0,
-                stride = (uint)sizeof(Vertex),
+                stride = (uint)sizeof(VertexStruct),
                 inputRate = VkVertexInputRate.Vertex
             }
         ];
@@ -52,21 +52,21 @@ internal record struct Vertex
                 binding = 0,
                 location = 0,
                 format = VkFormat.R32G32Sfloat,
-                offset = (uint)Marshal.OffsetOf<Vertex>(nameof(Position))
+                offset = (uint)Marshal.OffsetOf<VertexStruct>(nameof(Position))
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 0,
                 location = 1,
                 format = VkFormat.R32G32Sfloat,
-                offset = (uint)Marshal.OffsetOf<Vertex>(nameof(TexCoord))
+                offset = (uint)Marshal.OffsetOf<VertexStruct>(nameof(TexCoord))
             },
             new VkVertexInputAttributeDescription
             {
                 binding = 0,
                 location = 2,
                 format = VkFormat.R32G32B32A32Sfloat,
-                offset = (uint)Marshal.OffsetOf<Vertex>(nameof(Color))
+                offset = (uint)Marshal.OffsetOf<VertexStruct>(nameof(Color))
             }
         ];
     }

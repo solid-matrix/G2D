@@ -1,16 +1,18 @@
-using System.Numerics;
-
 namespace G2D.Mathematics;
 
-public readonly record struct RectI(int X, int Y, int Width, int Height)
+public readonly struct RectI
 {
-    public RectI() : this(0, 0, 0, 0)
-    {
-    }
+    public readonly Vec2I Position;
 
-    public RectI(Vec2I location, Size2I size2) : this(location.X, location.Y, size2.Width, size2.Height)
-    {
-    }
+    public readonly Size2I Size;
+
+    public int X => Position.X;
+
+    public int Y => Position.Y;
+
+    public int Width => Size.Width;
+
+    public int Height => Size.Height;
 
     public int Left => X;
 
@@ -20,13 +22,28 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
 
     public int Bottom => Y + Height;
 
-    public Vec2I Location => new(X, Y);
-
-    public Size2I Size2 => new(Width, Height);
-
     public Vec2I Center => new(X + Width / 2, Y + Height / 2);
 
+    public RectI()
+    {
+    }
+
+    public RectI(Vec2I position, Size2I size)
+    {
+        Position = position;
+        Size = size;
+    }
+
+    public RectI(int x, int y, int width, int height) : this(new Vec2I(x, y), new Size2I(width, height))
+    {
+    }
+
     public bool Contains(int x, int y)
+    {
+        return X <= x && x < X + Width && Y <= y && y < Y + Height;
+    }
+
+    public bool Contains(float x, float y)
     {
         return X <= x && x < X + Width && Y <= y && y < Y + Height;
     }
@@ -36,23 +53,18 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
         return X <= value.X && value.X < X + Width && Y <= value.Y && value.Y < Y + Height;
     }
 
-    public bool Contains(float x, float y)
-    {
-        return X <= x && x < X + Width && Y <= y && y < Y + Height;
-    }
-
-    public bool Contains(Vector2 value)
+    public bool Contains(Vec2 value)
     {
         return X <= value.X && value.X < X + Width && Y <= value.Y && value.Y < Y + Height;
     }
 
-    public bool Contains(Rect value)
+    public bool Contains(RectI value)
     {
         return X <= value.X && value.X + value.Width <= X + Width && Y <= value.Y &&
                value.Y + value.Height <= Y + Height;
     }
 
-    public bool Contains(RectI value)
+    public bool Contains(Rect value)
     {
         return X <= value.X && value.X + value.Width <= X + Width && Y <= value.Y &&
                value.Y + value.Height <= Y + Height;
@@ -97,10 +109,11 @@ public readonly record struct RectI(int X, int Y, int Width, int Height)
 
     public static RectI Union(RectI value1, RectI value2)
     {
-        var num = Math.Min(value1.X, value2.X);
-        var num2 = Math.Min(value1.Y, value2.Y);
-        return new RectI(num, num2, Math.Max(value1.Right, value2.Right) - num,
-            Math.Max(value1.Bottom, value2.Bottom) - num2);
+        var minX = Math.Min(value1.X, value2.X);
+        var minY = Math.Min(value1.Y, value2.Y);
+        var maxRight = Math.Max(value1.Right, value2.Right);
+        var maxBottom = Math.Max(value1.Bottom, value2.Bottom);
+        return new RectI(minX, minY, maxRight - minX, maxBottom - minY);
     }
 
     public RectI Union(RectI value)
