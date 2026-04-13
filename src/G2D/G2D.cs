@@ -139,6 +139,8 @@ public static unsafe class G2D
 
                 if (res) Timer.NotifyRendered();
             }
+
+            Thread.Sleep(1);
         }
 
         _game.Unload();

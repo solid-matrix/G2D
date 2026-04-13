@@ -5,9 +5,7 @@ namespace G2D;
 
 public sealed unsafe class Window : IDisposable
 {
-    internal SDL_Window* _handle;
-
-    internal SDL_WindowID _id;
+    private readonly SDL_Window* _handle;
 
     static Window()
     {
@@ -25,15 +23,12 @@ public sealed unsafe class Window : IDisposable
 
         if (_handle == null)
             throw new Exception("SDL: failed to create window" + SDL3.SDL_GetError());
-
-        _id = SDL3.SDL_GetWindowID(_handle);
     }
 
     void IDisposable.Dispose()
     {
         if (_handle == null) return;
         SDL3.SDL_DestroyWindow(_handle);
-        _handle = null;
     }
 
     public void Show()

@@ -49,42 +49,11 @@ public unsafe class Graphics
 
     internal GraphicsShader DefaultShader => _context._defaultShader;
 
-    public Color ClearColor4
+
+    public Color ClearColor
     {
         get => new(_context.ClearColor.float32[0], _context.ClearColor.float32[1], _context.ClearColor.float32[2], _context.ClearColor.float32[3]);
         set => _context.ClearColor = new VkClearColorValue(value.R, value.G, value.B, value.A);
-    }
-
-
-    public void SetViewTransform(Mat3X4 matrix)
-    {
-        FlushUnitRectDraw();
-        Uniform.View = matrix;
-    }
-
-    public void SetColor(Color color)
-    {
-        FlushUnitRectDraw();
-        Uniform.Color = color;
-    }
-
-    internal void SetMousePosition(Vector2 pos)
-    {
-        Uniform.MousePosition = pos;
-    }
-
-    internal void SetTime(float time)
-    {
-        Uniform.Time = time;
-    }
-
-    internal void SwitchGraphicsPipeline(GraphicsShader shader)
-    {
-        if (_currentShader == null || _currentShader.Value != shader)
-        {
-            Api.vkCmdBindPipeline(CommandBuffer, VkPipelineBindPoint.Graphics, shader.Pipeline);
-            _currentShader = shader;
-        }
     }
 
     internal void BeginSession(DrawSessionState sessionState)
@@ -105,9 +74,19 @@ public unsafe class Graphics
         _currentShader = null;
     }
 
+    internal void SwitchGraphicsPipeline(GraphicsShader shader)
+    {
+        if (_currentShader == null || _currentShader.Value != shader)
+        {
+            Api.vkCmdBindPipeline(CommandBuffer, VkPipelineBindPoint.Graphics, shader.Pipeline);
+            _currentShader = shader;
+        }
+    }
+
     public void FlushUnitRectDraw()
     {
-        SwitchGraphicsPipeline(DefaultShader);
+        if (_currentShader == null) SwitchGraphicsPipeline(DefaultShader);
+
         if (_instances.Count == 0) return;
 
         var instanceBuffer = InstanceBufferPool.AllocateUpload(CollectionsMarshal.AsSpan(_instances));
@@ -118,6 +97,71 @@ public unsafe class Graphics
 
         _instances.Clear();
     }
+
+    internal void SetMousePosition(Vector2 pos)
+    {
+        Uniform.MousePosition = pos;
+    }
+
+    internal void SetTime(float time)
+    {
+        Uniform.Time = time;
+    }
+
+    public void SetViewTransform(Mat3X4 matrix)
+    {
+        FlushUnitRectDraw();
+        Uniform.View = matrix;
+    }
+
+    public void SetColor(Color color)
+    {
+        FlushUnitRectDraw();
+        Uniform.Color = color;
+    }
+
+    public void DrawInternal(GraphicsShader shader)
+    {
+        throw new NotImplementedException();
+    }
+
+
+    // public void DrawPrimitive(ReadOnlySpan<VertexStruct> vertices)
+    // {
+    //     // TODO
+    //     // rebind vertex buffer
+    //     // rebind instance buffer to unit
+    //     // endure bind & if possible, only pass the instance index back and don't the binding.
+    //     uint firstVertex = 0;
+    //     uint firstInstance = 0;
+    //     Api.vkCmdDraw(CommandBuffer, (uint)vertices.Length, 1, firstVertex, firstInstance);
+    // }
+    //
+    // public void DrawPrimitiveInstanced(ReadOnlySpan<VertexStruct> vertices, ReadOnlySpan<InstanceStruct> instances)
+    // {
+    //     // TODO
+    //     uint firstVertex = 0;
+    //     uint firstInstance = 0;
+    //     Api.vkCmdDraw(CommandBuffer, (uint)vertices.Length, (uint)instances.Length, firstVertex, firstInstance);
+    // }
+    //
+    // public void DrawPrimitiveIndexed(ReadOnlySpan<VertexStruct> vertices, ReadOnlySpan<uint> indices)
+    // {
+    //     // TODO
+    //     uint firstIndex = 0;
+    //     var vertexOffset = 0;
+    //     uint firstInstance = 0;
+    //     Api.vkCmdDrawIndexed(CommandBuffer, (uint)indices.Length, 1, firstIndex, vertexOffset, firstInstance);
+    // }
+    //
+    // public void DrawPrimitiveIndexedInstanced(ReadOnlySpan<VertexStruct> vertices, ReadOnlySpan<uint> indices, ReadOnlySpan<InstanceStruct> instances)
+    // {
+    //     // TODO
+    //     uint firstIndex = 0;
+    //     var vertexOffset = 0;
+    //     uint firstInstance = 0;
+    //     Api.vkCmdDrawIndexed(CommandBuffer, (uint)indices.Length, (uint)instances.Length, firstIndex, vertexOffset, firstInstance);
+    // }
 
     public void Draw(Rect rect, Color color)
     {

@@ -2,7 +2,7 @@
 
 namespace G2D;
 
-internal class VertexBuffer : IDisposable
+internal class VertexBufferManager : IDisposable
 {
     private static readonly VertexStruct[] UnitRectVertices =
     [
@@ -16,19 +16,8 @@ internal class VertexBuffer : IDisposable
 
     private readonly VulkanDevice _device;
 
-    private readonly BufferSpanPool _vertexBufferPool;
 
-    private readonly BufferSpanPool _indexBufferPool;
-
-    private readonly BufferSpanPool _instanceBufferPool;
-
-    private readonly BufferSpan[] _verticeBuffers;
-
-    private readonly BufferSpan[] _indexBuffers;
-
-    private readonly BufferSpan[] _instanceBuffers;
-
-    public VertexBuffer(VulkanDevice device)
+    public VertexBufferManager(VulkanDevice device)
     {
         _device = device;
     }

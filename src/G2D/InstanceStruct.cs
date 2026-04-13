@@ -4,7 +4,7 @@ using G2D.Mathematics;
 namespace G2D;
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct InstanceStruct
+public struct InstanceStruct
 {
     public Mat3X2 ModelTransform;
 

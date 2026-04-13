@@ -29,15 +29,14 @@ layout (location = 0) out vec2 f_tex_coords;
 layout (location = 1) out vec4 f_color;
 layout (location = 2) flat out uint f_tsi;
 
-mat3x2 buildProjectionMatrix(vec2 res) {
-    return mat3x2(2.0 / res.x, 0.0, 0.0, 2.0 / res.y, -1.0, -1.0);
+mat3x3 buildProjectionMatrix(vec2 res) {
+    return mat3x3(2.0 / res.x, 0.0, 0.0, 0.0, 2.0 / res.y, 0.0, -1.0, -1.0, 1.0);
 }
 
 void main() {
-    mat3x2 proj = buildProjectionMatrix(u_res);
-    mat3x2 model = mat3x2(i_model_c0, i_model_c1, i_model_c2);
-    vec2 pos = proj * u_view * vec3(model * vec3(v_pos, 1), 1);
-
+    mat3x3 proj = buildProjectionMatrix(u_res);
+    mat3x3 model = mat3x3(vec3(i_model_c0, 0), vec3(i_model_c1, 0), vec3(i_model_c2, 1));
+    vec3 pos = proj * u_view * model * vec3(v_pos, 1);
     gl_Position = vec4(pos.xy, 0, 1);
 
     f_color = v_color * i_color * u_color;

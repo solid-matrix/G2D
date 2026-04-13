@@ -2,19 +2,19 @@
 
 namespace G2D;
 
-internal readonly struct GraphicsShader : IEquatable<GraphicsShader>
+public readonly struct GraphicsShader : IEquatable<GraphicsShader>
 {
     private readonly GraphicsLayout _layout;
 
     private readonly int _index;
 
-    public GraphicsShader(GraphicsLayout layout, int index)
+    internal GraphicsShader(GraphicsLayout layout, int index)
     {
         _layout = layout;
         _index = index;
     }
 
-    public VkPipeline Pipeline => _layout.Pipelines[_index];
+    internal VkPipeline Pipeline => _layout.Pipelines[_index];
 
     public static bool operator ==(GraphicsShader left, GraphicsShader right)
     {

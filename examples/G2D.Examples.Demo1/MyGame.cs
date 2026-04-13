@@ -10,6 +10,8 @@ public partial class MyGame : IGame
 
     private Texture _texture;
 
+    private float _r;
+
     public void Load()
     {
         G2D.Events.OnKeyboardEvent += (ref e) => G2D.Exit(e.Key == Keys.Escape && e.IsDown);
@@ -18,12 +20,14 @@ public partial class MyGame : IGame
 
 
         _texture = G2D.Assets.LoadTexture(G2D.Embedded.GetBytes("Assets/texture.jpg"));
-        G2D.Graphics.ClearColor4 = Colors.White;
+        G2D.Graphics.ClearColor = Colors.White;
     }
 
     public void Update(float dt)
     {
         _updateFps.Update();
+
+        _r += dt * MathF.PI / 2;
     }
 
     public void Draw(float alpha)
@@ -32,10 +36,10 @@ public partial class MyGame : IGame
         G2D.Graphics.Draw(
             _texture,
             //new Rect(Vec2.Zero, G2D.Graphics.Viewport.Size / 2),
-            Sampler.NearestRepeat,
+            Sampler.LinearClamp,
             G2D.Graphics.Viewport.Size / 2,
-            0,
-            new Vec2(1, 1),
+            _r,
+            new Vec2(0.5f, 0.5f),
             Vec2.Zero,
             new Vec2(0.0F, 0.0F));
     }

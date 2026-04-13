@@ -71,7 +71,7 @@ public sealed unsafe class GraphicsContext : IDisposable
             debugEnabled);
 
         // Create Surface
-        _surface = new VkSurfaceKHR((ulong)window.CreateSurface(_instance.Instance));
+        _surface = new VkSurfaceKHR((ulong)_window.CreateSurface(_instance.Instance));
 
         // Select Physical Device 
         var physicalDevices = _instance.EnumeratePhysicalDevices();
