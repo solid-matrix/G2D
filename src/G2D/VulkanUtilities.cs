@@ -165,25 +165,15 @@ internal static unsafe class VulkanUtilities
         return names;
     }
 
-    public static bool CheckIsSupported(VkVersion apiVersion)
+    public static bool CheckIsSupported(VkVersion requiredApiVersion)
     {
         try
         {
             var res = Vulkan.vkInitialize();
             if (res != VkResult.Success) return false;
 
-            uint propCount;
-            res = Vulkan.vkEnumerateInstanceExtensionProperties(&propCount, null);
-            if (res != VkResult.Success) return false;
-
-            // We require Vulkan 1.3 or higher
             var version = Vulkan.vkEnumerateInstanceVersion();
-            if (version < apiVersion)
-                return false;
-
-            // TODO: Enumerate physical devices and try to create instance.
-
-            return true;
+            return version >= requiredApiVersion;
         }
         catch
         {

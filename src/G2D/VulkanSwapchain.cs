@@ -134,7 +134,6 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         }
 
         _isValid = true;
-        Console.WriteLine("swapchain created");
     }
 
     private void Destroy()
@@ -144,7 +143,6 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         if (_swapchain != VkSwapchainKHR.Null) _device.Api.vkDestroySwapchainKHR(_swapchain);
 
         _isValid = false;
-        Console.WriteLine("swapchain destroyed");
     }
 
     public bool Recreate()

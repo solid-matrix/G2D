@@ -189,11 +189,16 @@ internal sealed unsafe class VulkanContext
 
     internal bool RenderFrame(Color clearColor, Action<DrawSessionState> draw)
     {
+        if (_swapchain.SurfaceSize.Area == 0) return false;
+        if (!_swapchain.IsValid)
+        {
+            _swapchain.Recreate();
+            return false;
+        }
+
         // wait for last submit
         var result = Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, 0);
         if (result != VkResult.Success) return false;
-
-        Api.vkResetFences(_submitFences[_currentFrame]);
 
         // acquire next image
         result = Api.vkAcquireNextImageKHR(_swapchain.Swapchain, 0, _acquireSemaphores[_currentFrame], VkFence.Null, out var imageIndex);
@@ -319,6 +324,7 @@ internal sealed unsafe class VulkanContext
             signalSemaphoreCount = 1u,
             pSignalSemaphores = &releaseSemaphore
         };
+        Api.vkResetFences(_submitFences[_currentFrame]);
         Api.vkQueueSubmit(_device.GraphicsQueue, 1, &submitInfo, _submitFences[_currentFrame])
             .CheckResult("failed to queue submit");
 

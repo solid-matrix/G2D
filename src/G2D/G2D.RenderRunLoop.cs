@@ -55,19 +55,18 @@ public partial class G2D
                 _timer.SignalUpdated();
             }
 
-            if (_windowWidth * _windowHeight > 0 && _timer.RequireRender)
-                if (_vulkanContext.RenderFrame(_graphics.ClearColor, session =>
-                    {
-                        _graphics.BeginSession(session);
+            if (_timer.RequireRender && _vulkanContext.RenderFrame(_graphics.ClearColor, session =>
+                {
+                    _graphics.BeginSession(session);
 
-                        _graphics.Uniform.MousePosition = default; //TODO Mouse.GetPosition();
-                        _graphics.Uniform.Time = _timer.Time;
+                    _graphics.Uniform.MousePosition = default; //TODO Mouse.GetPosition();
+                    _graphics.Uniform.Time = _timer.Time;
 
-                        _game.Draw(_timer.RenderAlpha);
+                    _game.Draw(_timer.RenderAlpha);
 
-                        _graphics.EndSession();
-                    }))
-                    _timer.SignalRendered();
+                    _graphics.EndSession();
+                }))
+                _timer.SignalRendered();
 
 
             Thread.Sleep(1);

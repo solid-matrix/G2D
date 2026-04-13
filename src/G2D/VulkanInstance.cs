@@ -35,10 +35,10 @@ internal sealed unsafe class VulkanInstance : IDisposable
         }
 
         if (!requiredLayerSet.All(availableLayerSet.Contains))
-            throw new VkException("vulkan required instance layer not supported");
+            throw new Exception("vulkan required instance layer not supported");
 
         if (!requiredExtensionSet.All(availableExtensionSet.Contains))
-            throw new VkException("vulkan required instance extension not supported");
+            throw new Exception("vulkan required instance extension not supported");
 
         VkApplicationInfo appInfo = new()
         {
@@ -48,6 +48,15 @@ internal sealed unsafe class VulkanInstance : IDisposable
             engineVersion = engineVersion,
             apiVersion = apiVersion
         };
+
+        if (_debugEnabled)
+        {
+            Console.WriteLine("vulkan instance layer enabled:");
+            foreach (var layer in requiredLayerSet) Console.WriteLine($" - {layer}");
+
+            Console.WriteLine("vulkan instance extension enabled:");
+            foreach (var extension in requiredExtensionSet) Console.WriteLine($" - {extension}");
+        }
 
         using VkStringArray vkLayerNames = new(requiredLayerSet);
         using VkStringArray vkExtensionNames = new(requiredExtensionSet);

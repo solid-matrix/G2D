@@ -116,8 +116,6 @@ internal unsafe class TextureCollection : IDisposable
     {
         var result = ImageResult.FromMemory(raw, ColorComponents.RedGreenBlueAlpha);
 
-        Console.WriteLine($"{result.Width} {result.Height} {result.Comp} {result.SourceComp} ");
-
         var (image, allocation, size) = InternalCreateTextureFromRgbaData(result.Data, (uint)result.Width, (uint)result.Height);
 
         return (image, allocation, size);
