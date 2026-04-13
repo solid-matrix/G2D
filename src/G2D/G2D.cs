@@ -15,7 +15,7 @@ public sealed partial class G2D
 
     private volatile CancellationTokenSource _cts;
 
-    private volatile string[] _requiredVulkanInstanceExtensions;
+    private volatile string[] _requiredVulkanInstanceExtensions = null!;
 
     private volatile nint _vkInstanceHandle;
 

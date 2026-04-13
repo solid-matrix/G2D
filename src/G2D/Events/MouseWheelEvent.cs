@@ -1,25 +1,24 @@
-using System.Numerics;
-using G2D.Mathematics;
+﻿using G2D.Mathematics;
 using SDL;
 
 namespace G2D;
 
-public readonly ref struct MouseWheelEvent
+public readonly struct MouseWheelEvent
 {
-    internal readonly ref SDL_MouseWheelEvent _event;
+    private readonly SDL_Event _e;
 
-    public Vector2 Location => new(_event.mouse_x, _event.mouse_y);
-
-    public MouseWheelDirection Direction => (MouseWheelDirection)_event.direction;
-
-    public Vector2 Scroll => new(_event.x, _event.y);
-
-    public Vec2I Ticks => new(_event.integer_x, _event.integer_y);
-
-    internal MouseWheelEvent(ref SDL_Event e)
+    internal MouseWheelEvent(SDL_Event e)
     {
-        _event = ref e.wheel;
+        _e = e;
     }
 
-    public EventType EventType => (EventType)_event.type;
+    public EventType EventType => (EventType)_e.type;
+
+    public Vec2 Position => new(_e.wheel.mouse_x, _e.wheel.mouse_y);
+
+    public Vec2 Scroll => new(_e.wheel.x, _e.wheel.y);
+
+    public Vec2I Ticks => new(_e.wheel.integer_x, _e.wheel.integer_y);
+
+    public MouseWheelDirection Direction => (MouseWheelDirection)_e.wheel.direction;
 }

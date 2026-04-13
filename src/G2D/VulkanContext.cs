@@ -9,16 +9,16 @@ internal sealed unsafe class VulkanContext
 
     private static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
-    internal EmbeddedResource _embeddedResource = new(typeof(VulkanContext).Assembly);
+    private readonly EmbeddedResource _embeddedResource = new(typeof(VulkanContext).Assembly);
 
 
     private readonly VulkanInstance _instance;
 
     private VkSurfaceKHR _surface;
 
-    private VulkanDevice _device;
+    private VulkanDevice _device = null!;
 
-    private VulkanSwapchain _swapchain;
+    private VulkanSwapchain _swapchain = null!;
 
     private uint _frameCountInFlight;
 
@@ -27,30 +27,30 @@ internal sealed unsafe class VulkanContext
     private VkDescriptorPool _descriptorPool;
 
 
-    private GraphicsLayout _graphicsLayout;
+    private GraphicsLayout _graphicsLayout = null!;
 
     internal GraphicsShader _defaultShader;
 
 
-    private UniformBuffer[] _uniformBuffers;
+    private UniformBuffer[] _uniformBuffers = null!;
 
-    internal TextureCollection _textureCollection;
+    internal TextureCollection _textureCollection = null!;
 
-    internal SamplerCollection _samplerCollection;
-
-
-    private VkCommandBuffer[] _commandBuffers;
-
-    private BufferSpanPool[] _vertexBufferPools;
-
-    private BufferSpanPool[] _instanceBufferPools;
+    internal SamplerCollection _samplerCollection = null!;
 
 
-    private VkFence[] _submitFences;
+    private VkCommandBuffer[] _commandBuffers = null!;
 
-    private VkSemaphore[] _acquireSemaphores;
+    private BufferSpanPool[] _vertexBufferPools = null!;
 
-    private VkSemaphore[] _releaseSemaphores;
+    private BufferSpanPool[] _instanceBufferPools = null!;
+
+
+    private VkFence[] _submitFences = null!;
+
+    private VkSemaphore[] _acquireSemaphores = null!;
+
+    private VkSemaphore[] _releaseSemaphores = null!;
 
     public VulkanContext(string appName, Version appVersion, string engineName, Version engineVersion, string[] requiredLayers, string[] requiredExtensions, bool debugEnabled = false)
     {

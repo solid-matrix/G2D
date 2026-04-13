@@ -1,10 +1,10 @@
 ﻿namespace G2D;
 
-public class Assets
+public class AssetsManager
 {
     private readonly TextureCollection _textureCollection;
 
-    internal Assets(TextureCollection textureCollection)
+    internal AssetsManager(TextureCollection textureCollection)
     {
         _textureCollection = textureCollection;
     }

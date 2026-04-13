@@ -21,13 +21,13 @@ public class Graphics
 
     private DrawSessionState _sessionState;
 
-    private Rect _viewport;
+    private Size2 _viewport;
 
     private GraphicsShader? _currentShader;
 
-    private readonly List<InstanceStruct> _instances = new();
+    private readonly List<InstanceStruct> _instances = [];
 
-    private BufferSpan _unitRectVerticesBuffer;
+    private BufferSpan _unitRectVerticesBuffer = null!;
 
 
     internal Graphics(VulkanContext context)
@@ -37,7 +37,7 @@ public class Graphics
 
     internal VkDeviceApi Api => _context.Api;
 
-    public Rect Viewport => _viewport;
+    public Size2 Viewport => _viewport;
 
     internal ref UniformStruct Uniform => ref _sessionState._uniformBuffer.Data;
 
@@ -54,7 +54,7 @@ public class Graphics
     internal void BeginSession(DrawSessionState sessionState)
     {
         _sessionState = sessionState;
-        _viewport = new Rect(0, 0, _sessionState._extent.width, _sessionState._extent.height);
+        _viewport = new Size2(_sessionState._extent.width, _sessionState._extent.height);
         Uniform.View = Mat3X4.Identity;
         Uniform.Color = Colors.White;
         Uniform.Resolution = new Vector2(_viewport.Width, _viewport.Height);

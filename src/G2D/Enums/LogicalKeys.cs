@@ -1,6 +1,6 @@
 namespace G2D;
 
-public enum VirtualKeys : uint
+public enum LogicalKeys : uint
 {
     ExtendedMask = 536870912u,
     ScancodeMask = 1073741824u,

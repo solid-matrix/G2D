@@ -44,8 +44,14 @@ internal sealed unsafe class VulkanDevice : IDisposable
         HashSet<VkUtf8String> availableExtensionSet = [.. instance.EnumerateDeviceExtensionNames(_physicalDevice)];
         HashSet<VkUtf8String> requiredExtensionSet = [..requiredExtensions];
 
-        if (!requiredExtensions.All(availableExtensionSet.Contains))
+        if (!requiredExtensionSet.All(availableExtensionSet.Contains))
             throw new VkException("vulkan required device extension not supported");
+
+        if (_instance.DebugEnabled)
+        {
+            Console.WriteLine("vulkan device extension enabled:");
+            foreach (var extension in requiredExtensionSet) Console.WriteLine($" - {extension}");
+        }
 
 
         HashSet<uint> uniqueQueueFamilies = [_graphicsFamily, _presentFamily, _computeFamily];

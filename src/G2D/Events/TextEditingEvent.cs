@@ -1,17 +1,22 @@
+﻿using System.Runtime.InteropServices;
 using SDL;
 
 namespace G2D;
 
-public ref struct TextEditingEvent
+public readonly unsafe struct TextEditingEvent
 {
-    // TODO
+    private readonly SDL_Event _e;
 
-    internal ref SDL_TextEditingEvent _event;
-
-    internal TextEditingEvent(ref SDL_Event e)
+    internal TextEditingEvent(SDL_Event e)
     {
-        _event = ref e.edit;
+        _e = e;
     }
 
-    public EventType EventType => (EventType)_event.type;
+    public EventType EventType => (EventType)_e.type;
+
+    public string Text => Marshal.PtrToStringUTF8((nint)_e.edit.text) ?? string.Empty;
+
+    public int Start => _e.edit.start;
+
+    public int Length => _e.edit.length;
 }

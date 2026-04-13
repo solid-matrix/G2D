@@ -1,5 +1,135 @@
-﻿namespace G2D;
+﻿using System.Runtime.InteropServices;
+using SDL;
 
+namespace G2D;
+
+[StructLayout(LayoutKind.Explicit)]
 public readonly struct Event
 {
+    [FieldOffset(0)] private readonly SDL_Event _e;
+
+    internal Event(SDL_Event e)
+    {
+        _e = e;
+    }
+
+    public EventType EventType => (EventType)_e.type;
+
+    [FieldOffset(0)] internal readonly QuitEvent _quitEvent;
+    [FieldOffset(0)] internal readonly TerminatingEvent _terminatingEvent;
+    [FieldOffset(0)] internal readonly LowMemoryEvent _lowMemoryEvent;
+    [FieldOffset(0)] internal readonly WillEnterBackgroundEvent _willEnterBackgroundEvent;
+    [FieldOffset(0)] internal readonly DidEnterBackgroundEvent _didEnterBackgroundEvent;
+    [FieldOffset(0)] internal readonly WillEnterForegroundEvent _willEnterForegroundEvent;
+    [FieldOffset(0)] internal readonly DidEnterForegroundEvent _didEnterForegroundEvent;
+    [FieldOffset(0)] internal readonly LocaleChangedEvent _localeChangedEvent;
+    [FieldOffset(0)] internal readonly SystemThemeChangedEvent _systemThemeChangedEvent;
+    [FieldOffset(0)] internal readonly DisplayOrientationEvent _displayOrientationEvent;
+    [FieldOffset(0)] internal readonly DisplayAddedEvent _displayAddedEvent;
+    [FieldOffset(0)] internal readonly DisplayRemovedEvent _displayRemovedEvent;
+    [FieldOffset(0)] internal readonly DisplayMovedEvent _displayMovedEvent;
+    [FieldOffset(0)] internal readonly DisplayDesktopModeChangedEvent _displayDesktopModeChangedEvent;
+    [FieldOffset(0)] internal readonly DisplayCurrentModeChangedEvent _displayCurrentModeChangedEvent;
+    [FieldOffset(0)] internal readonly DisplayContentScaleChangedEvent _displayContentScaleChangedEvent;
+    [FieldOffset(0)] internal readonly DisplayUsableBoundsChangedEvent _displayUsableBoundsChangedEvent;
+    [FieldOffset(0)] internal readonly WindowShownEvent _windowShownEvent;
+    [FieldOffset(0)] internal readonly WindowHiddenEvent _windowHiddenEvent;
+    [FieldOffset(0)] internal readonly WindowExposedEvent _windowExposedEvent;
+    [FieldOffset(0)] internal readonly WindowMovedEvent _windowMovedEvent;
+    [FieldOffset(0)] internal readonly WindowResizedEvent _windowResizedEvent;
+    [FieldOffset(0)] internal readonly WindowPixelSizeChangedEvent _windowPixelSizeChangedEvent;
+    [FieldOffset(0)] internal readonly WindowMetalViewResizedEvent _windowMetalViewResizedEvent;
+    [FieldOffset(0)] internal readonly WindowMinimizedEvent _windowMinimizedEvent;
+    [FieldOffset(0)] internal readonly WindowMaximizedEvent _windowMaximizedEvent;
+    [FieldOffset(0)] internal readonly WindowRestoredEvent _windowRestoredEvent;
+    [FieldOffset(0)] internal readonly WindowMouseEnterEvent _windowMouseEnterEvent;
+    [FieldOffset(0)] internal readonly WindowMouseLeaveEvent _windowMouseLeaveEvent;
+    [FieldOffset(0)] internal readonly WindowFocusGainedEvent _windowFocusGainedEvent;
+    [FieldOffset(0)] internal readonly WindowFocusLostEvent _windowFocusLostEvent;
+    [FieldOffset(0)] internal readonly WindowCloseRequestedEvent _windowCloseRequestedEvent;
+    [FieldOffset(0)] internal readonly WindowHitTestEvent _windowHitTestEvent;
+    [FieldOffset(0)] internal readonly WindowIccProfChangedEvent _windowIccProfChangedEvent;
+    [FieldOffset(0)] internal readonly WindowDisplayChangedEvent _windowDisplayChangedEvent;
+    [FieldOffset(0)] internal readonly WindowDisplayScaleChangedEvent _windowDisplayScaleChangedEvent;
+    [FieldOffset(0)] internal readonly WindowSafeAreaChangedEvent _windowSafeAreaChangedEvent;
+    [FieldOffset(0)] internal readonly WindowOccludedEvent _windowOccludedEvent;
+    [FieldOffset(0)] internal readonly WindowEnterFullscreenEvent _windowEnterFullscreenEvent;
+    [FieldOffset(0)] internal readonly WindowLeaveFullscreenEvent _windowLeaveFullscreenEvent;
+    [FieldOffset(0)] internal readonly WindowDestroyedEvent _windowDestroyedEvent;
+    [FieldOffset(0)] internal readonly WindowHdrStateChangedEvent _windowHdrStateChangedEvent;
+    [FieldOffset(0)] internal readonly KeyDownEvent _keyDownEvent;
+    [FieldOffset(0)] internal readonly KeyUpEvent _keyUpEvent;
+    [FieldOffset(0)] internal readonly TextEditingEvent _textEditingEvent;
+    [FieldOffset(0)] internal readonly TextInputEvent _textInputEvent;
+    [FieldOffset(0)] internal readonly KeymapChangedEvent _keymapChangedEvent;
+    [FieldOffset(0)] internal readonly KeyboardAddedEvent _keyboardAddedEvent;
+    [FieldOffset(0)] internal readonly KeyboardRemovedEvent _keyboardRemovedEvent;
+    [FieldOffset(0)] internal readonly TextEditingCandidatesEvent _textEditingCandidatesEvent;
+    [FieldOffset(0)] internal readonly ScreenKeyboardShownEvent _screenKeyboardShownEvent;
+    [FieldOffset(0)] internal readonly ScreenKeyboardHiddenEvent _screenKeyboardHiddenEvent;
+    [FieldOffset(0)] internal readonly MouseMotionEvent _mouseMotionEvent;
+    [FieldOffset(0)] internal readonly MouseButtonDownEvent _mouseButtonDownEvent;
+    [FieldOffset(0)] internal readonly MouseButtonUpEvent _mouseButtonUpEvent;
+    [FieldOffset(0)] internal readonly MouseWheelEvent _mouseWheelEvent;
+    [FieldOffset(0)] internal readonly MouseAddedEvent _mouseAddedEvent;
+    [FieldOffset(0)] internal readonly MouseRemovedEvent _mouseRemovedEvent;
+    [FieldOffset(0)] internal readonly JoystickAxisMotionEvent _joystickAxisMotionEvent;
+    [FieldOffset(0)] internal readonly JoystickBallMotionEvent _joystickBallMotionEvent;
+    [FieldOffset(0)] internal readonly JoystickHatMotionEvent _joystickHatMotionEvent;
+    [FieldOffset(0)] internal readonly JoystickButtonDownEvent _joystickButtonDownEvent;
+    [FieldOffset(0)] internal readonly JoystickButtonUpEvent _joystickButtonUpEvent;
+    [FieldOffset(0)] internal readonly JoystickAddedEvent _joystickAddedEvent;
+    [FieldOffset(0)] internal readonly JoystickRemovedEvent _joystickRemovedEvent;
+    [FieldOffset(0)] internal readonly JoystickBatteryUpdatedEvent _joystickBatteryUpdatedEvent;
+    [FieldOffset(0)] internal readonly JoystickUpdateCompleteEvent _joystickUpdateCompleteEvent;
+    [FieldOffset(0)] internal readonly GamepadAxisMotionEvent _gamepadAxisMotionEvent;
+    [FieldOffset(0)] internal readonly GamepadButtonDownEvent _gamepadButtonDownEvent;
+    [FieldOffset(0)] internal readonly GamepadButtonUpEvent _gamepadButtonUpEvent;
+    [FieldOffset(0)] internal readonly GamepadAddedEvent _gamepadAddedEvent;
+    [FieldOffset(0)] internal readonly GamepadRemovedEvent _gamepadRemovedEvent;
+    [FieldOffset(0)] internal readonly GamepadRemappedEvent _gamepadRemappedEvent;
+    [FieldOffset(0)] internal readonly GamepadTouchpadDownEvent _gamepadTouchpadDownEvent;
+    [FieldOffset(0)] internal readonly GamepadTouchpadMotionEvent _gamepadTouchpadMotionEvent;
+    [FieldOffset(0)] internal readonly GamepadTouchpadUpEvent _gamepadTouchpadUpEvent;
+    [FieldOffset(0)] internal readonly GamepadSensorUpdateEvent _gamepadSensorUpdateEvent;
+    [FieldOffset(0)] internal readonly GamepadUpdateCompleteEvent _gamepadUpdateCompleteEvent;
+    [FieldOffset(0)] internal readonly GamepadSteamHandleUpdatedEvent _gamepadSteamHandleUpdatedEvent;
+    [FieldOffset(0)] internal readonly FingerDownEvent _fingerDownEvent;
+    [FieldOffset(0)] internal readonly FingerUpEvent _fingerUpEvent;
+    [FieldOffset(0)] internal readonly FingerMotionEvent _fingerMotionEvent;
+    [FieldOffset(0)] internal readonly FingerCanceledEvent _fingerCanceledEvent;
+    [FieldOffset(0)] internal readonly PinchBeginEvent _pinchBeginEvent;
+    [FieldOffset(0)] internal readonly PinchUpdateEvent _pinchUpdateEvent;
+    [FieldOffset(0)] internal readonly PinchEndEvent _pinchEndEvent;
+    [FieldOffset(0)] internal readonly ClipboardUpdateEvent _clipboardUpdateEvent;
+    [FieldOffset(0)] internal readonly DropFileEvent _dropFileEvent;
+    [FieldOffset(0)] internal readonly DropTextEvent _dropTextEvent;
+    [FieldOffset(0)] internal readonly DropBeginEvent _dropBeginEvent;
+    [FieldOffset(0)] internal readonly DropCompleteEvent _dropCompleteEvent;
+    [FieldOffset(0)] internal readonly DropPositionEvent _dropPositionEvent;
+    [FieldOffset(0)] internal readonly AudioDeviceAddedEvent _audioDeviceAddedEvent;
+    [FieldOffset(0)] internal readonly AudioDeviceRemovedEvent _audioDeviceRemovedEvent;
+    [FieldOffset(0)] internal readonly AudioDeviceFormatChangedEvent _audioDeviceFormatChangedEvent;
+    [FieldOffset(0)] internal readonly SensorUpdateEvent _sensorUpdateEvent;
+    [FieldOffset(0)] internal readonly PenProximityInEvent _penProximityInEvent;
+    [FieldOffset(0)] internal readonly PenProximityOutEvent _penProximityOutEvent;
+    [FieldOffset(0)] internal readonly PenDownEvent _penDownEvent;
+    [FieldOffset(0)] internal readonly PenUpEvent _penUpEvent;
+    [FieldOffset(0)] internal readonly PenButtonDownEvent _penButtonDownEvent;
+    [FieldOffset(0)] internal readonly PenButtonUpEvent _penButtonUpEvent;
+    [FieldOffset(0)] internal readonly PenMotionEvent _penMotionEvent;
+    [FieldOffset(0)] internal readonly PenAxisEvent _penAxisEvent;
+    [FieldOffset(0)] internal readonly CameraDeviceAddedEvent _cameraDeviceAddedEvent;
+    [FieldOffset(0)] internal readonly CameraDeviceRemovedEvent _cameraDeviceRemovedEvent;
+    [FieldOffset(0)] internal readonly CameraDeviceApprovedEvent _cameraDeviceApprovedEvent;
+    [FieldOffset(0)] internal readonly CameraDeviceDeniedEvent _cameraDeviceDeniedEvent;
+    [FieldOffset(0)] internal readonly RenderTargetsResetEvent _renderTargetsResetEvent;
+    [FieldOffset(0)] internal readonly RenderDeviceResetEvent _renderDeviceResetEvent;
+    [FieldOffset(0)] internal readonly RenderDeviceLostEvent _renderDeviceLostEvent;
+    [FieldOffset(0)] internal readonly Private0Event _private0Event;
+    [FieldOffset(0)] internal readonly Private1Event _private1Event;
+    [FieldOffset(0)] internal readonly Private2Event _private2Event;
+    [FieldOffset(0)] internal readonly Private3Event _private3Event;
+    [FieldOffset(0)] internal readonly PollSentinelEvent _pollSentinelEvent;
+    [FieldOffset(0)] internal readonly UserEvent _userEvent;
 }

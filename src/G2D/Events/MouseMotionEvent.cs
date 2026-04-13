@@ -1,22 +1,22 @@
-using System.Numerics;
+﻿using G2D.Mathematics;
 using SDL;
 
 namespace G2D;
 
-public readonly ref struct MouseMotionEvent
+public readonly struct MouseMotionEvent
 {
-    internal readonly ref SDL_MouseMotionEvent _event;
+    private readonly SDL_Event _e;
 
-    public MouseButtons Buttons => (MouseButtons)_event.state;
-
-    public Vector2 Position => new(_event.x, _event.y);
-
-    public Vector2 Delta => new(_event.xrel, _event.yrel);
-
-    internal MouseMotionEvent(ref SDL_Event e)
+    internal MouseMotionEvent(SDL_Event e)
     {
-        _event = ref e.motion;
+        _e = e;
     }
 
-    public EventType EventType => (EventType)_event.type;
+    public EventType EventType => (EventType)_e.type;
+
+    public MouseButtons Buttons => (MouseButtons)_e.motion.state;
+
+    public Vec2 Position => new(_e.motion.x, _e.motion.y);
+
+    public Vec2 Delta => new(_e.motion.xrel, _e.motion.yrel);
 }

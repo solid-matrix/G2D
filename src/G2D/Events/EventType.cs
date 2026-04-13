@@ -25,6 +25,8 @@ public enum EventType
     //DisplayFirst = 337,
     //DisplayLast = 344,
 
+    //WindowFirst = 514,
+
     WindowShown = 514,
     WindowHidden = 515,
     WindowExposed = 516,
@@ -51,7 +53,6 @@ public enum EventType
     WindowDestroyed = 537,
     WindowHdrStateChanged = 538,
 
-    //WindowFirst = 514,
     //WindowLast = 538,
 
     KeyDown = 768,

@@ -1,17 +1,18 @@
+﻿using System.Runtime.InteropServices;
 using SDL;
 
 namespace G2D;
 
-public ref struct TextInputEvent
+public readonly unsafe struct TextInputEvent
 {
-    // TODO
+    private readonly SDL_Event _e;
 
-    internal ref SDL_TextInputEvent _event;
-
-    internal TextInputEvent(ref SDL_Event e)
+    internal TextInputEvent(SDL_Event e)
     {
-        _event = ref e.text;
+        _e = e;
     }
 
-    public EventType EventType => (EventType)_event.type;
+    public EventType EventType => (EventType)_e.type;
+
+    public string Text => Marshal.PtrToStringUTF8((nint)_e.text.text) ?? string.Empty;
 }

@@ -4,13 +4,15 @@ namespace G2D;
 
 public partial class G2D
 {
-    private VulkanContext _vulkanContext;
+    private VulkanContext _vulkanContext = null!;
 
-    internal Graphics _graphics;
+    private Graphics _graphics = null!;
 
-    internal Assets _assets;
+    private AssetsManager _assetsManager = null!;
 
-    internal StepTimer _timer;
+    private EventsManager _eventsManager = null!;
+
+    private StepTimer _timer = null!;
 
     private void RenderRunLoop()
     {
@@ -37,15 +39,15 @@ public partial class G2D
         _initBarrier.SignalAndWait();
 
         _graphics = new Graphics(_vulkanContext);
-        _assets = new Assets(_vulkanContext._textureCollection);
+        _assetsManager = new AssetsManager(_vulkanContext._textureCollection);
         _timer = new StepTimer(_config.UpdateFrequency, _config.VSync ? _displayRefreshRate : _config.MaxRenderFrequency);
+        _eventsManager = new EventsManager();
 
         _game.Load();
         _timer.Start();
         while (!ShouldClose)
         {
-            // TODO
-            // process events
+            while (_eventChannel.Reader.TryRead(out var e)) _eventsManager.ProcessEvent(e);
 
             _timer.Step();
 
