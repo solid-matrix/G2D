@@ -9,8 +9,12 @@ namespace G2D.Mathematics;
 ///     This structure is immutable and suitable for representing dimensions of 2D objects
 ///     in pixel coordinates, such as image sizes, window dimensions, or UI element bounds.
 /// </remarks>
-public readonly record struct Size2I(int Width, int Height)
+public readonly struct Size2I
 {
+    public readonly int Width;
+
+    public readonly int Height;
+
     /// <summary>
     ///     Initializes a new instance of the <see cref="Size2I" /> struct with all components set to the same value.
     /// </summary>
@@ -24,6 +28,17 @@ public readonly record struct Size2I(int Width, int Height)
     /// </summary>
     public Size2I() : this(0, 0)
     {
+    }
+
+    /// <summary>
+    ///     Initializes a new instance of the <see cref="Size2I" /> struct with width and height values.
+    /// </summary>
+    /// <param name="width">The width of the size.</param>
+    /// <param name="height">The height of the size.</param>
+    public Size2I(int width, int height)
+    {
+        Width = width;
+        Height = height;
     }
 
     /// <summary>

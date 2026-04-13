@@ -1,77 +1,76 @@
-﻿using System.Text;
+﻿using G2D.Mathematics;
 using Vortice.Vulkan;
 
 namespace G2D;
 
-public sealed unsafe class GraphicsContext : IDisposable
+internal sealed unsafe class VulkanContext
 {
     private const uint MaxFrameCountInFlight = 3;
 
     private static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
-    private readonly Window _window;
+    internal EmbeddedResource _embeddedResource = new(typeof(VulkanContext).Assembly);
+
 
     private readonly VulkanInstance _instance;
 
-    private readonly VkSurfaceKHR _surface;
+    private VkSurfaceKHR _surface;
 
-    private readonly VulkanDevice _device;
+    private VulkanDevice _device;
 
-    private readonly VulkanSwapchain _swapchain;
+    private VulkanSwapchain _swapchain;
 
-    private readonly uint _frameCountInFlight;
+    private uint _frameCountInFlight;
 
     private uint _currentFrame;
 
-
-    private readonly VkDescriptorPool _descriptorPool;
-
-
-    private readonly GraphicsLayout _graphicsLayout;
-
-    internal readonly GraphicsShader _defaultShader;
+    private VkDescriptorPool _descriptorPool;
 
 
-    private readonly UniformBuffer[] _uniformBuffers;
+    private GraphicsLayout _graphicsLayout;
 
-    internal readonly TextureCollection _textureCollection;
-
-    internal readonly SamplerCollection _samplerCollection;
+    internal GraphicsShader _defaultShader;
 
 
-    private readonly VkCommandBuffer[] _commandBuffers;
+    private UniformBuffer[] _uniformBuffers;
 
-    private readonly BufferSpanPool[] _vertexBufferPools;
+    internal TextureCollection _textureCollection;
 
-    private readonly BufferSpanPool[] _instanceBufferPools;
-
-
-    private readonly VkFence[] _submitFences;
-
-    private readonly VkSemaphore[] _acquireSemaphores;
-
-    private readonly VkSemaphore[] _releaseSemaphores;
-
-    internal VkClearColorValue ClearColor = new();
+    internal SamplerCollection _samplerCollection;
 
 
-    internal GraphicsContext(Window window, string appName, Version appVersion, string engineName, Version engineVersion, bool debugEnabled = false)
+    private VkCommandBuffer[] _commandBuffers;
+
+    private BufferSpanPool[] _vertexBufferPools;
+
+    private BufferSpanPool[] _instanceBufferPools;
+
+
+    private VkFence[] _submitFences;
+
+    private VkSemaphore[] _acquireSemaphores;
+
+    private VkSemaphore[] _releaseSemaphores;
+
+    public VulkanContext(string appName, Version appVersion, string engineName, Version engineVersion, string[] requiredLayers, string[] requiredExtensions, bool debugEnabled = false)
     {
-        _window = window;
-
-        // Create Instance
-        var vkAppVersion = new VkVersion((uint)appVersion.Major, (uint)appVersion.Minor, (uint)appVersion.Build);
-        var vkEngineVersion = new VkVersion((uint)engineVersion.Major, (uint)engineVersion.Minor, (uint)engineVersion.Build);
         _instance = new VulkanInstance(
-            Encoding.UTF8.GetBytes(appName), vkAppVersion,
-            Encoding.UTF8.GetBytes(engineName), vkEngineVersion,
+            appName.ToVkUtf8String(), appVersion.ToVkVersion(),
+            engineName.ToVkUtf8String(), engineVersion.ToVkVersion(),
             VulkanVersion,
-            [],
-            [..Window.GetVulkanInstanceExtensions().Select(s => Encoding.UTF8.GetBytes(s))],
+            [..requiredLayers.Select(s => s.ToVkUtf8String())],
+            [..requiredExtensions.Select(s => s.ToVkUtf8String())],
             debugEnabled);
+    }
 
-        // Create Surface
-        _surface = new VkSurfaceKHR((ulong)_window.CreateSurface(_instance.Instance));
+    public VkDeviceApi Api => _device.Api;
+
+    public VkInstance Instance => _instance;
+
+
+    public void Initialize(nint surfaceHandle, Func<Size2I> windowSizeProvidor)
+    {
+        _surface = new VkSurfaceKHR((ulong)surfaceHandle);
 
         // Select Physical Device 
         var physicalDevices = _instance.EnumeratePhysicalDevices();
@@ -82,7 +81,7 @@ public sealed unsafe class GraphicsContext : IDisposable
         _device = new VulkanDevice(_instance, physicalDevice, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
 
         // Create Swapchain
-        _swapchain = new VulkanSwapchain(_device, _surface, _window);
+        _swapchain = new VulkanSwapchain(_device, _surface, windowSizeProvidor);
         if (!_swapchain.IsValid)
             throw new Exception("failed to create swapchain");
 
@@ -117,8 +116,8 @@ public sealed unsafe class GraphicsContext : IDisposable
 
         // Create Default Graphics Pipeline
         _defaultShader = _graphicsLayout.CreateShader(
-            G2D.InternalEmbedded.GetBytes("Assets/Shaders/default.vert.spv"),
-            G2D.InternalEmbedded.GetBytes("Assets/Shaders/default.frag.spv")
+            _embeddedResource.GetBytes("Assets/Shaders/default.vert.spv"),
+            _embeddedResource.GetBytes("Assets/Shaders/default.frag.spv")
         );
 
         // Create Vertex Buffer Pool
@@ -151,13 +150,10 @@ public sealed unsafe class GraphicsContext : IDisposable
         }
     }
 
-    internal VkDeviceApi Api => _device.Api;
 
-    void IDisposable.Dispose()
+    public void Cleanup()
     {
         _device.WaitIdle();
-
-        _swapchain.Dispose();
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {
@@ -167,8 +163,8 @@ public sealed unsafe class GraphicsContext : IDisposable
         }
 
         _textureCollection.Dispose();
-        _samplerCollection.Dispose();
 
+        _samplerCollection.Dispose();
 
         Api.vkDestroyDescriptorPool(_descriptorPool);
 
@@ -181,13 +177,17 @@ public sealed unsafe class GraphicsContext : IDisposable
             Api.vkDestroySemaphore(_releaseSemaphores[i]);
         }
 
+        _swapchain.Dispose();
+
 
         _device.Dispose();
-        Window.DestroySurface(_instance.Instance, _surface);
+
+        _instance.Api.vkDestroySurfaceKHR(_surface);
+
         _instance.Dispose();
     }
 
-    internal bool RenderFrame(Action<DrawSessionState> draw)
+    internal bool RenderFrame(Color clearColor, Action<DrawSessionState> draw)
     {
         // wait for last submit
         var result = Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, 0);
@@ -237,7 +237,7 @@ public sealed unsafe class GraphicsContext : IDisposable
             imageLayout = VkImageLayout.ColorAttachmentOptimal,
             loadOp = VkAttachmentLoadOp.Clear,
             storeOp = VkAttachmentStoreOp.Store,
-            clearValue = new VkClearValue(ClearColor)
+            clearValue = new VkClearValue(clearColor.R, clearColor.G, clearColor.B, clearColor.A)
         };
 
         VkRenderingInfo renderingInfo = new()

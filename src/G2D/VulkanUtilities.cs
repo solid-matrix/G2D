@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using System.Text;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -196,5 +197,15 @@ internal static unsafe class VulkanUtilities
         var message = new VkUtf8String(pCallbackData->pMessage);
         Console.WriteLine($"[Vulkan][{messageTypes}][{messageSeverity}]: {message}");
         return Vulkan.VK_FALSE;
+    }
+
+    public static VkVersion ToVkVersion(this Version version)
+    {
+        return new VkVersion((uint)version.Major, (uint)version.Minor, (uint)version.Build);
+    }
+
+    public static VkUtf8String ToVkUtf8String(this string str)
+    {
+        return Encoding.UTF8.GetBytes(str);
     }
 }

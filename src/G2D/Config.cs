@@ -2,6 +2,9 @@ namespace G2D;
 
 public class Config
 {
+    internal bool _locked = false;
+    // TODO lock the config after configuration finished
+
     public string EngineName => "G2D";
 
     public Version EngineVersion { get; } = typeof(Config).Assembly.GetName().Version!;

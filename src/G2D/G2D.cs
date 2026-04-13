@@ -1,159 +1,59 @@
-﻿using SDL;
+﻿using System.Threading.Channels;
 
 namespace G2D;
 
-public static unsafe class G2D
+public sealed partial class G2D
 {
-    internal static readonly EmbeddedResource InternalEmbedded = new(typeof(G2D).Assembly);
+    // shared resources
+    private volatile Config _config;
 
-    private static bool _running;
+    private volatile IGame _game;
 
-    private static GraphicsContext? _graphicsContext;
+    private volatile Barrier _initBarrier;
 
-    private static Keyboard? _keyboard;
+    private volatile Channel<Event> _eventChannel;
 
-    private static Mouse? _mouse;
+    private volatile CancellationTokenSource _cts;
 
-    private static GamePad? _gamePad;
+    private volatile string[] _requiredVulkanInstanceExtensions;
 
-    private static EmbeddedResource? _embedded;
+    private volatile nint _vkInstanceHandle;
 
-    private static Assets? _assets;
+    private volatile nint _vkSurfaceHandle;
 
-    private static StepTimer? _timer;
+    private volatile int _windowWidth;
 
-    private static Events? _events;
+    private volatile int _windowHeight;
 
-    private static Window? _window;
+    private volatile float _displayRefreshRate;
 
-    private static Graphics? _graphics;
-
-    private static IGame? _game;
-
-    private static Type? _gameType;
-
-    public static Keyboard Keyboard => _keyboard ?? throw new InvalidOperationException("Keyboard is not ready");
-
-    public static Mouse Mouse => _mouse ?? throw new InvalidOperationException("Mouse is not ready");
-
-    public static GamePad GamePad => _gamePad ?? throw new InvalidOperationException("GamePad is not ready");
-
-    public static EmbeddedResource Embedded => _embedded ?? throw new InvalidOperationException("Embedded is not ready");
-
-    public static Assets Assets => _assets ?? throw new InvalidOperationException("Assets is not ready");
-
-    public static StepTimer Timer => _timer ?? throw new InvalidOperationException("Timer is not ready");
-
-    public static Events Events => _events ?? throw new InvalidOperationException("Events is not ready");
-
-    public static Window Window => _window ?? throw new InvalidOperationException("Window is not ready");
-
-    public static Graphics Graphics => _graphics ?? throw new InvalidOperationException("Graphics is not ready");
-
-
-    public static void Launch<T>(T game) where T : IGame
+    private G2D(Config config, IGame game)
     {
         _game = game;
-        _gameType = typeof(T);
-        Initialize();
-        RunLoop();
-        Cleanup();
+        _config = config;
+        _initBarrier = new Barrier(2);
+        _eventChannel = Channel.CreateUnbounded<Event>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
+        _cts = new CancellationTokenSource();
     }
 
-    private static void Initialize()
+    private bool ShouldClose => _cts.Token.IsCancellationRequested;
+
+    private void Run()
     {
-        _running = false;
-
-        var config = new Config();
-        _game!.Config(config);
-
-        _embedded = new EmbeddedResource(_gameType!.Assembly);
-
-        _window = new Window(
-            config.WindowTitle, config.WindowWidth, config.WindowHeight,
-            (config.WindowResizable ? WindowFlags.Resizable : WindowFlags.None)
-            | (config.WindowBorderless ? WindowFlags.Borderless : WindowFlags.None)
-            | (config.WindowFullscreen ? WindowFlags.Fullscreen : WindowFlags.None)
-        );
-
-        if (config.WindowHideCursor) _window.HideCursor();
-
-        if (config.VSync)
-            _timer = new StepTimer(config.UpdateFrequency, _window.GetDisplayRefreshRate());
-        else if (config.MaxRenderFrequency <= 0)
-            _timer = new StepTimer(config.UpdateFrequency, float.MaxValue);
-        else
-            _timer = new StepTimer(config.UpdateFrequency, config.MaxRenderFrequency);
-
-        _graphicsContext = new GraphicsContext(
-            Window,
-            config.ApplicationName, config.ApplicationVersion,
-            config.EngineName, config.EngineVersion,
-            config.DebugMode);
-        _graphics = new Graphics(_graphicsContext);
-        _assets = new Assets(_graphicsContext._textureCollection);
-        _keyboard = new Keyboard();
-        _mouse = new Mouse();
-        _gamePad = new GamePad();
-        _events = new Events();
-
-        Events.OnQuitEvent += (ref _) => _running = false;
-    }
-
-    private static void RunLoop()
-    {
-        _game!.Load();
-        Timer.Start();
-
-        Window.Show();
-        _running = true;
-        SDL_Event e = new();
-        while (_running)
+        var renderThread = new Thread(RenderRunLoop)
         {
-            while (SDL3.SDL_PollEvent(&e)) Events.Process(ref e);
+            IsBackground = true
+        };
+        renderThread.Start();
 
-            if (!_running) break;
+        WindowRunLoop();
 
-            Timer.Step();
-
-            while (Timer.RequireUpdate)
-            {
-                _game.Update(Timer.UpdateDeltaTime);
-                Timer.NotifyUpdated();
-            }
-
-            if (!Window.IsMinimized() && Timer.RequireRender)
-            {
-                var res = _graphicsContext!.RenderFrame(session =>
-                {
-                    Graphics.BeginSession(session);
-
-                    Graphics.Uniform.MousePosition = Mouse.GetPosition();
-
-                    Graphics.Uniform.Time = Timer.Time;
-
-                    _game.Draw(Timer.RenderAlpha);
-
-                    Graphics.EndSession();
-                });
-
-                if (res) Timer.NotifyRendered();
-            }
-
-            Thread.Sleep(1);
-        }
-
-        _game.Unload();
+        renderThread.Join();
     }
 
-    private static void Cleanup()
+    private void Cleanup()
     {
-        ((IDisposable)_graphicsContext!).Dispose();
-        ((IDisposable)_window!).Dispose();
-    }
-
-    public static void Exit(bool exit = true)
-    {
-        _running = false;
+        _cts.Dispose();
+        _initBarrier.Dispose();
     }
 }

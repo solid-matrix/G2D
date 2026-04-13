@@ -1,4 +1,5 @@
-﻿using Vortice.Vulkan;
+﻿using G2D.Mathematics;
+using Vortice.Vulkan;
 
 namespace G2D;
 
@@ -7,8 +8,6 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
     private readonly VulkanDevice _device;
 
     private readonly VkSurfaceKHR _surface;
-
-    private readonly Window _window;
 
     private VkExtent2D _extent;
 
@@ -26,13 +25,16 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
     private VkSwapchainKHR _swapchain;
 
-    public VulkanSwapchain(VulkanDevice device, VkSurfaceKHR surface, Window window)
+    private readonly Func<Size2I> _surfaceSizeProvider;
+
+
+    public VulkanSwapchain(VulkanDevice device, VkSurfaceKHR surface, Func<Size2I> surfaceSizeProvider)
     {
         _device = device;
         _surface = surface;
-        _window = window;
         _images = [];
         _imageViews = [];
+        _surfaceSizeProvider = surfaceSizeProvider;
         Create();
     }
 
@@ -50,6 +52,8 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
     public bool IsValid => _isValid;
 
+    public Size2I SurfaceSize => _surfaceSizeProvider();
+
     public void Dispose()
     {
         if (_isValid)
@@ -66,8 +70,9 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         _images = [];
         _imageViews = [];
 
-        var (actualWidth, actualHeight) = _window.IsMinimized() ? (0, 0) : _window.GetExtent();
-        if (actualWidth == 0 || actualHeight == 0) return;
+        var size = _surfaceSizeProvider();
+
+        if (size.Area == 0) return;
 
         var capabilities = _device.Instance.GetPhysicalDeviceSurfaceCapabilities(_device.PhysicalDevice, _surface);
         var formats = _device.Instance.GetPhysicalDeviceSurfaceFormats(_device.PhysicalDevice, _surface);
@@ -79,7 +84,7 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
         _presentMode = ChoosePresentMode(presentModes);
 
-        _extent = ChooseExtent(capabilities, new VkExtent2D(actualWidth, actualHeight));
+        _extent = ChooseExtent(capabilities, new VkExtent2D(size.Width, size.Height));
         if (_extent.width == 0 || _extent.height == 0) return;
 
 
@@ -129,6 +134,7 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         }
 
         _isValid = true;
+        Console.WriteLine("swapchain created");
     }
 
     private void Destroy()
@@ -138,6 +144,7 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         if (_swapchain != VkSwapchainKHR.Null) _device.Api.vkDestroySwapchainKHR(_swapchain);
 
         _isValid = false;
+        Console.WriteLine("swapchain destroyed");
     }
 
     public bool Recreate()

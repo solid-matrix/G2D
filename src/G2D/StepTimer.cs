@@ -39,13 +39,13 @@ public class StepTimer
 
     internal bool RequireRender => _renderAccumulator >= _renderFixedDeltaTicks;
 
-    internal void NotifyUpdated()
+    internal void SignalUpdated()
     {
         _updateAccumulator -= _updateFixedDeltaTicks;
     }
 
 
-    internal void NotifyRendered()
+    internal void SignalRendered()
     {
         _renderAccumulator %= _renderFixedDeltaTicks;
     }

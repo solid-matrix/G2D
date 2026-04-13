@@ -5,7 +5,7 @@ using Vortice.Vulkan;
 
 namespace G2D;
 
-public unsafe class Graphics
+public class Graphics
 {
     private static readonly VertexStruct[] UnitRectVertices =
     [
@@ -17,7 +17,7 @@ public unsafe class Graphics
         new(new Vec2(0.5F, 0.5F), new Vec2(1, 1), Colors.White) // 3
     ];
 
-    private readonly GraphicsContext _context;
+    private readonly VulkanContext _context;
 
     private DrawSessionState _sessionState;
 
@@ -30,7 +30,7 @@ public unsafe class Graphics
     private BufferSpan _unitRectVerticesBuffer;
 
 
-    internal Graphics(GraphicsContext context)
+    internal Graphics(VulkanContext context)
     {
         _context = context;
     }
@@ -49,12 +49,7 @@ public unsafe class Graphics
 
     internal GraphicsShader DefaultShader => _context._defaultShader;
 
-
-    public Color ClearColor
-    {
-        get => new(_context.ClearColor.float32[0], _context.ClearColor.float32[1], _context.ClearColor.float32[2], _context.ClearColor.float32[3]);
-        set => _context.ClearColor = new VkClearColorValue(value.R, value.G, value.B, value.A);
-    }
+    public Color ClearColor { get; set; } = Colors.White;
 
     internal void BeginSession(DrawSessionState sessionState)
     {
@@ -167,7 +162,7 @@ public unsafe class Graphics
     {
         var instance = new InstanceStruct
         {
-            ModelTransform = Mat3X2.CreateAffine(rect.Position, 0, rect.Size, Vec2.Zero, Vec2.Zero),
+            ModelTransform = Mat3X2.CreateAffine(rect.Position + rect.Size / 2, 0, rect.Size, Vec2.Zero, Vec2.Zero),
             Color = Colors.White,
             TextureOffset = Vec2.Zero,
             TextureScale = Vec2.One,

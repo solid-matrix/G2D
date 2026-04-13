@@ -1,5 +1,5 @@
 ﻿using G2D.Mathematics;
-using SDL;
+using StbImageSharp;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -49,7 +49,7 @@ internal unsafe class TextureCollection : IDisposable
         if (texture.Index != 0) throw new Exception("failed to create 1 pixel white texture at 0");
     }
 
-    internal Texture CreateTextureFromRaw(ReadOnlySpan<byte> raw)
+    internal Texture CreateTextureFromRaw(byte[] raw)
     {
         var (image, allocation, extent) = InternalCreateTextureFromRawImage(raw);
         return CreateTexture(image, allocation, extent);
@@ -112,28 +112,13 @@ internal unsafe class TextureCollection : IDisposable
         _allocation[i] = VmaAllocation.Null;
     }
 
-    private (VkImage, VmaAllocation, Size2) InternalCreateTextureFromRawImage(ReadOnlySpan<byte> raw)
+    private (VkImage, VmaAllocation, Size2) InternalCreateTextureFromRawImage(byte[] raw)
     {
-        SDL_Surface* surface;
+        var result = ImageResult.FromMemory(raw, ColorComponents.RedGreenBlueAlpha);
 
-        fixed (byte* rawPtr = raw)
-        {
-            var stream = SDL3.SDL_IOFromMem((nint)rawPtr, (uint)raw.Length);
-            surface = SDL3_image.IMG_Load_IO(stream, true);
-            if (surface == null) throw new Exception("failed to load image");
-            if (surface->format != SDL3.SDL_PIXELFORMAT_RGBA32)
-            {
-                var converted = SDL3.SDL_ConvertSurface(surface, SDL3.SDL_PIXELFORMAT_RGBA32);
-                SDL3.SDL_DestroySurface(surface);
+        Console.WriteLine($"{result.Width} {result.Height} {result.Comp} {result.SourceComp} ");
 
-                if (converted == null) throw new Exception("failed to convert pixel format");
-                surface = converted;
-            }
-        }
-
-        var (image, allocation, size) = InternalCreateTextureFromRgbaData(new ReadOnlySpan<byte>((void*)surface->pixels, surface->h * surface->pitch), (uint)surface->w, (uint)surface->h);
-
-        SDL3.SDL_DestroySurface(surface);
+        var (image, allocation, size) = InternalCreateTextureFromRgbaData(result.Data, (uint)result.Width, (uint)result.Height);
 
         return (image, allocation, size);
     }
