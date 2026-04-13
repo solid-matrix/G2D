@@ -27,7 +27,7 @@ public class Config
 
     public bool WindowHideCursor { get; set; } = false;
 
-    public bool DebugMode { get; set; } = false;
+    public bool EnableDebug { get; set; } = false;
 
     public bool VSync { get; set; } = true;
 

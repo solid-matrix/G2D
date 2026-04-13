@@ -186,6 +186,11 @@ public class Graphics
         _instances.Add(instance);
     }
 
+    public void Draw(Texture texture, Vec2 position, float rotation, float scale)
+    {
+        Draw(texture, Sampler.NearestRepeat, position, rotation, new Vec2(scale), Vec2.Zero, Vec2.Zero);
+    }
+
     public void Draw(Texture texture, Rect quad, Sampler sampler, Vec2 position, float rotation, Vec2 scale, Vec2 origin, Vec2 shear)
     {
         var instance = new InstanceStruct

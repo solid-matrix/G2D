@@ -5,9 +5,9 @@ public partial class MyGame
     public void Config(Config config)
     {
 #if DEBUG
-        config.DebugMode = true;
+        config.EnableDebug = true;
 #else
-        config.DebugMode = false;
+        config.EnableDebug = false;
 #endif
         config.ApplicationName = "G2D Demo 1";
         config.WindowTitle = "G2D Demo 1";

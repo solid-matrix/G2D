@@ -25,7 +25,7 @@ public partial class G2D
             _config.EngineName, _config.EngineVersion,
             [],
             _requiredVulkanInstanceExtensions,
-            _config.DebugMode
+            _config.EnableDebug
         );
         _vkInstanceHandle = _vulkanContext.Instance;
 
