@@ -17,6 +17,8 @@ public class Graphics
         new(new Vec2(0.5F, 0.5F), new Vec2(1, 1), Colors.White) // 3
     ];
 
+    private readonly EmbeddedResource _embeddedResource = new(typeof(VulkanContext).Assembly);
+
     private readonly VulkanContext _context;
 
     private DrawSessionState _sessionState;
@@ -29,10 +31,17 @@ public class Graphics
 
     private BufferSpan _unitRectVerticesBuffer = null!;
 
+    private readonly GraphicsShader _defaultShader;
+
 
     internal Graphics(VulkanContext context)
     {
         _context = context;
+        // Create Default Graphics Pipeline
+        _defaultShader = _context.GraphicsLayout.CreateShader(
+            _embeddedResource.GetBytes("Assets/Shaders/default.vert.spv"),
+            _embeddedResource.GetBytes("Assets/Shaders/default.frag.spv")
+        );
     }
 
     internal VkDeviceApi Api => _context.Api;
@@ -46,8 +55,6 @@ public class Graphics
     internal BufferSpanPool VertexBufferPool => _sessionState._vertexBufferPool;
 
     internal BufferSpanPool InstanceBufferPool => _sessionState._instanceBufferPool;
-
-    internal GraphicsShader DefaultShader => _context._defaultShader;
 
     public Color ClearColor { get; set; } = Colors.White;
 
@@ -80,7 +87,7 @@ public class Graphics
 
     public void FlushUnitRectDraw()
     {
-        if (_currentShader == null) SwitchGraphicsPipeline(DefaultShader);
+        if (_currentShader == null) SwitchGraphicsPipeline(_defaultShader);
 
         if (_instances.Count == 0) return;
 

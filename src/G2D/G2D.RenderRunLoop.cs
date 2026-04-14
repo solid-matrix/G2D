@@ -39,7 +39,7 @@ public partial class G2D
         _initBarrier.SignalAndWait();
 
         _graphics = new Graphics(_vulkanContext);
-        _assetsManager = new AssetsManager(_vulkanContext._textureCollection);
+        _assetsManager = new AssetsManager(_vulkanContext.TextureCollection);
         _timer = new StepTimer(_config.UpdateFrequency, _config.VSync ? _displayRefreshRate : _config.MaxRenderFrequency);
         _eventsManager = new EventsManager();
 
@@ -47,7 +47,10 @@ public partial class G2D
         _timer.Start();
         while (!ShouldClose)
         {
-            while (_eventChannel.Reader.TryRead(out var e)) _eventsManager.ProcessEvent(e);
+            while (_eventChannel.Reader.TryRead(out var e))
+            {
+                _eventsManager.ProcessEvent(e);
+            }
 
             _timer.Step();
 

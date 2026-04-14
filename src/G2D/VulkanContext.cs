@@ -9,9 +9,6 @@ internal sealed unsafe class VulkanContext
 
     private static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
-    private readonly EmbeddedResource _embeddedResource = new(typeof(VulkanContext).Assembly);
-
-
     private readonly VulkanInstance _instance;
 
     private VkSurfaceKHR _surface;
@@ -29,14 +26,11 @@ internal sealed unsafe class VulkanContext
 
     private GraphicsLayout _graphicsLayout = null!;
 
-    internal GraphicsShader _defaultShader;
-
-
     private UniformBuffer[] _uniformBuffers = null!;
 
-    internal TextureCollection _textureCollection = null!;
+    private TextureCollection _textureCollection = null!;
 
-    internal SamplerCollection _samplerCollection = null!;
+    private SamplerCollection _samplerCollection = null!;
 
 
     private VkCommandBuffer[] _commandBuffers = null!;
@@ -63,6 +57,12 @@ internal sealed unsafe class VulkanContext
             debugEnabled);
     }
 
+    public TextureCollection TextureCollection => _textureCollection;
+
+    public SamplerCollection SamplerCollection => _samplerCollection;
+
+    public GraphicsLayout GraphicsLayout => _graphicsLayout;
+
     public VkDeviceApi Api => _device.Api;
 
     public VkInstance Instance => _instance;
@@ -76,6 +76,8 @@ internal sealed unsafe class VulkanContext
         var physicalDevices = _instance.EnumeratePhysicalDevices();
         var physicalDevice = VulkanUtilities.SelectPhysicalDevice(_instance, physicalDevices, _surface);
         if (physicalDevice == VkPhysicalDevice.Null) throw new Exception("failed to find a suitable physical device!");
+
+        VulkanUtilities.QueryRequiredQueueFamilies(_instance, physicalDevice, _surface);
 
         // Create Device
         _device = new VulkanDevice(_instance, physicalDevice, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
@@ -102,7 +104,9 @@ internal sealed unsafe class VulkanContext
         var uniformDescriptorSets = _graphicsLayout.AllocateUniformDescriptorSets(_descriptorPool, _frameCountInFlight);
         _uniformBuffers = new UniformBuffer[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
+        {
             _uniformBuffers[i] = new UniformBuffer(_device, uniformDescriptorSets[i]);
+        }
 
 
         // Create Texture Collection
@@ -113,27 +117,27 @@ internal sealed unsafe class VulkanContext
         var samplerDescriptorSet = _graphicsLayout.AllocateSamplerDescriptorSet(_descriptorPool);
         _samplerCollection = new SamplerCollection(_device, samplerDescriptorSet);
 
-
-        // Create Default Graphics Pipeline
-        _defaultShader = _graphicsLayout.CreateShader(
-            _embeddedResource.GetBytes("Assets/Shaders/default.vert.spv"),
-            _embeddedResource.GetBytes("Assets/Shaders/default.frag.spv")
-        );
-
         // Create Vertex Buffer Pool
         _vertexBufferPools = new BufferSpanPool[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
+        {
             _vertexBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        }
 
         // Create Instance Buffer Pool
         _instanceBufferPools = new BufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++) _instanceBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        for (var i = 0; i < _frameCountInFlight; i++)
+        {
+            _instanceBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+        }
 
         // Create CommandBuffers 
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
+        {
             Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out _commandBuffers[i])
                 .CheckResult("failed to allocate command buffer");
+        }
 
         // Create SyncObjects
         _submitFences = new VkFence[_frameCountInFlight];

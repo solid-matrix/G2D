@@ -14,12 +14,13 @@ internal sealed unsafe class VulkanDevice : IDisposable
 
     private readonly VmaAllocator _vmaAllocator;
 
-
     private readonly uint _graphicsFamily;
 
     private readonly uint _presentFamily;
 
     private readonly uint _computeFamily;
+
+    private readonly uint _transferFamily;
 
 
     private readonly VkQueue _graphicsQueue;
@@ -28,10 +29,14 @@ internal sealed unsafe class VulkanDevice : IDisposable
 
     private readonly VkQueue _computeQueue;
 
+    private readonly VkQueue _transferQueue;
+
 
     private readonly VkCommandPool _graphicsCommandPool;
 
     private readonly VkCommandPool _computeCommandPool;
+
+    private readonly VkCommandPool _transferCommandPool;
 
 
     public VulkanDevice(VulkanInstance instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkUtf8String[] requiredExtensions)
@@ -39,7 +44,6 @@ internal sealed unsafe class VulkanDevice : IDisposable
         _instance = instance;
         _physicalDevice = physicalDevice;
 
-        (_graphicsFamily, _presentFamily, _computeFamily) = instance.QueryGraphicsPresentQueueFamilies(physicalDevice, surface);
 
         HashSet<VkUtf8String> availableExtensionSet = [.. instance.EnumerateDeviceExtensionNames(_physicalDevice)];
         HashSet<VkUtf8String> requiredExtensionSet = [..requiredExtensions];
@@ -47,25 +51,24 @@ internal sealed unsafe class VulkanDevice : IDisposable
         if (!requiredExtensionSet.All(availableExtensionSet.Contains))
             throw new VkException("vulkan required device extension not supported");
 
-        if (_instance.DebugEnabled)
-        {
-            Console.WriteLine("vulkan device extension enabled:");
-            foreach (var extension in requiredExtensionSet) Console.WriteLine($" - {extension}");
-        }
+        if (_instance.DebugEnabled) Console.WriteLine($"vulkan device extension enabled: {string.Join(", ", requiredExtensionSet)}");
 
+        (_graphicsFamily, _presentFamily, _computeFamily, _transferFamily) = VulkanUtilities.QueryRequiredQueueFamilies(_instance, physicalDevice, surface);
 
-        HashSet<uint> uniqueQueueFamilies = [_graphicsFamily, _presentFamily, _computeFamily];
+        HashSet<uint> uniqueQueueFamilies = [_graphicsFamily, _presentFamily, _computeFamily, _transferFamily];
         var priority = 1.0f;
         var queueCount = 0u;
-        var queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[3];
+        var queueCreateInfos = stackalloc VkDeviceQueueCreateInfo[4];
 
         foreach (var queueFamily in uniqueQueueFamilies)
+        {
             queueCreateInfos[queueCount++] = new VkDeviceQueueCreateInfo
             {
                 queueFamilyIndex = queueFamily,
                 queueCount = 1,
                 pQueuePriorities = &priority
             };
+        }
 
         VkPhysicalDeviceFeatures2 features2 = new();
         VkPhysicalDeviceVulkan12Features vulkan12Features = new()
@@ -104,6 +107,7 @@ internal sealed unsafe class VulkanDevice : IDisposable
         _api.vkGetDeviceQueue(_graphicsFamily, 0, out _graphicsQueue);
         _api.vkGetDeviceQueue(_presentFamily, 0, out _presentQueue);
         _api.vkGetDeviceQueue(_computeFamily, 0, out _computeQueue);
+        _api.vkGetDeviceQueue(_transferFamily, 0, out _transferQueue);
 
         var vmaAllocatorInfo = new VmaAllocatorCreateInfo
         {
@@ -116,12 +120,14 @@ internal sealed unsafe class VulkanDevice : IDisposable
         Vma.vmaCreateAllocator(in vmaAllocatorInfo, out _vmaAllocator)
             .CheckResult("failed to create vma allocator");
 
-        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer | VkCommandPoolCreateFlags.Transient, _graphicsFamily, out _graphicsCommandPool)
+        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _graphicsFamily, out _graphicsCommandPool)
             .CheckResult("vulkan failed to create command pool");
 
-        if (_computeFamily != _graphicsFamily)
-            _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer | VkCommandPoolCreateFlags.Transient, _computeFamily, out _computeCommandPool)
-                .CheckResult("vulkan failed to create command pool");
+        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _computeFamily, out _computeCommandPool)
+            .CheckResult("vulkan failed to create command pool");
+
+        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer | VkCommandPoolCreateFlags.Transient, _transferFamily, out _transferCommandPool)
+            .CheckResult("vulkan failed to create command pool");
     }
 
     public VulkanInstance Instance => _instance;
@@ -153,8 +159,8 @@ internal sealed unsafe class VulkanDevice : IDisposable
     public void Dispose()
     {
         _api.vkDestroyCommandPool(_graphicsCommandPool);
-        if (_computeFamily != _graphicsFamily)
-            _api.vkDestroyCommandPool(_computeCommandPool);
+        _api.vkDestroyCommandPool(_computeCommandPool);
+        _api.vkDestroyCommandPool(_transferCommandPool);
 
         Vma.vmaDestroyAllocator(_vmaAllocator);
 
@@ -167,8 +173,5 @@ internal sealed unsafe class VulkanDevice : IDisposable
             .CheckResult("failed vulkan device wait idle");
     }
 
-    public static implicit operator VkDevice(VulkanDevice device)
-    {
-        return device._device;
-    }
+    public static implicit operator VkDevice(VulkanDevice device) => device._device;
 }

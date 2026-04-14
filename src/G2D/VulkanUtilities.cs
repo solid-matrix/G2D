@@ -62,6 +62,82 @@ internal static unsafe class VulkanUtilities
         device.Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
     }
 
+    public static (uint graphics, uint present, uint compute, uint transfer) QueryRequiredQueueFamilies(VulkanInstance instance, VkPhysicalDevice device, VkSurfaceKHR surface)
+    {
+        var graphicsFamily = Vulkan.VK_QUEUE_FAMILY_IGNORED;
+        var presentFamily = Vulkan.VK_QUEUE_FAMILY_IGNORED;
+        var computeFamily = Vulkan.VK_QUEUE_FAMILY_IGNORED;
+        var transferFamily = Vulkan.VK_QUEUE_FAMILY_IGNORED;
+
+        instance.Api.vkGetPhysicalDeviceQueueFamilyProperties(device, out var count);
+        if (count == 0) return (graphicsFamily, presentFamily, computeFamily, transferFamily);
+
+        var queueFamilies = new VkQueueFamilyProperties[count];
+        instance.Api.vkGetPhysicalDeviceQueueFamilyProperties(device, queueFamilies);
+
+        // select graphics & present queue families
+        for (uint i = 0; i < queueFamilies.Length; i++)
+        {
+            if ((queueFamilies[i].queueFlags & VkQueueFlags.Graphics) != 0)
+                graphicsFamily = i;
+
+            instance.Api.vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, out var presentSupport);
+            if (presentSupport)
+                presentFamily = i;
+
+            if (graphicsFamily != Vulkan.VK_QUEUE_FAMILY_IGNORED && presentFamily != Vulkan.VK_QUEUE_FAMILY_IGNORED)
+                break;
+        }
+
+        // select compute queue family
+        for (uint i = 0; i < queueFamilies.Length; i++)
+        {
+            if ((queueFamilies[i].queueFlags & VkQueueFlags.Compute) != 0 &&
+                (queueFamilies[i].queueFlags & VkQueueFlags.Graphics) == 0 &&
+                i != graphicsFamily)
+            {
+                computeFamily = i;
+                break;
+            }
+
+            if ((queueFamilies[i].queueFlags & VkQueueFlags.Compute) != 0 &&
+                i != graphicsFamily)
+                computeFamily = i;
+        }
+
+        if (computeFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED)
+            for (uint i = 0; i < queueFamilies.Length; i++)
+            {
+                if ((queueFamilies[i].queueFlags & VkQueueFlags.Compute) != 0)
+                    computeFamily = i;
+            }
+
+        // select transfer queue family
+        for (uint i = 0; i < queueFamilies.Length; i++)
+        {
+            if ((queueFamilies[i].queueFlags & VkQueueFlags.Transfer) != 0 &&
+                i != computeFamily &&
+                i != graphicsFamily)
+            {
+                transferFamily = i;
+                break;
+            }
+
+            if ((queueFamilies[i].queueFlags & VkQueueFlags.Transfer) != 0 &&
+                i != graphicsFamily)
+                transferFamily = i;
+        }
+
+        if (transferFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED)
+            for (uint i = 0; i < queueFamilies.Length; i++)
+            {
+                if ((queueFamilies[i].queueFlags & VkQueueFlags.Transfer) != 0)
+                    transferFamily = i;
+            }
+
+        return (graphicsFamily, presentFamily, computeFamily, transferFamily);
+    }
+
     public static VkPhysicalDevice SelectPhysicalDevice(VulkanInstance instance, VkPhysicalDevice[] physicalDevices, VkSurfaceKHR surface)
     {
         var max = 0;
@@ -82,11 +158,12 @@ internal static unsafe class VulkanUtilities
 
     public static int RankPhysicalDevice(VulkanInstance instance, VkPhysicalDevice device, VkSurfaceKHR surface)
     {
-        var (graphicsFamily, presentFamily, computeFamily) = instance.QueryGraphicsPresentQueueFamilies(device, surface);
+        var (graphicsFamily, presentFamily, computeFamily, transferFamily) = QueryRequiredQueueFamilies(instance, device, surface);
 
         if (graphicsFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
         if (presentFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
         if (computeFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
+        if (transferFamily == Vulkan.VK_QUEUE_FAMILY_IGNORED) return -1;
 
         var formats = instance.GetPhysicalDeviceSurfaceFormats(device, surface);
         if (formats.Length == 0) return -1;
@@ -135,10 +212,12 @@ internal static unsafe class VulkanUtilities
 
         var names = new VkUtf8String[count];
         for (var i = 0; i < count; i++)
+        {
             fixed (byte* pLayerName = props[i].layerName)
             {
                 names[i] = new VkUtf8String(pLayerName);
             }
+        }
 
         return names;
     }
@@ -157,10 +236,12 @@ internal static unsafe class VulkanUtilities
 
         var names = new VkUtf8String[count];
         for (var i = 0; i < count; i++)
+        {
             fixed (byte* pExtensionName = props[i].extensionName)
             {
                 names[i] = new VkUtf8String(pExtensionName);
             }
+        }
 
         return names;
     }
@@ -189,13 +270,7 @@ internal static unsafe class VulkanUtilities
         return Vulkan.VK_FALSE;
     }
 
-    public static VkVersion ToVkVersion(this Version version)
-    {
-        return new VkVersion((uint)version.Major, (uint)version.Minor, (uint)version.Build);
-    }
+    public static VkVersion ToVkVersion(this Version version) => new((uint)version.Major, (uint)version.Minor, (uint)version.Build);
 
-    public static VkUtf8String ToVkUtf8String(this string str)
-    {
-        return Encoding.UTF8.GetBytes(str);
-    }
+    public static VkUtf8String ToVkUtf8String(this string str) => Encoding.UTF8.GetBytes(str);
 }
