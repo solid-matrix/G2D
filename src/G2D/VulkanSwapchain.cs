@@ -138,7 +138,10 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
     private void Destroy()
     {
-        foreach (var imageView in _imageViews) _device.Api.vkDestroyImageView(imageView);
+        foreach (var imageView in _imageViews)
+        {
+            _device.Api.vkDestroyImageView(imageView);
+        }
 
         if (_swapchain != VkSwapchainKHR.Null) _device.Api.vkDestroySwapchainKHR(_swapchain);
 
@@ -170,14 +173,14 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
     private static VkSurfaceFormatKHR ChooseSurfaceFormat(ReadOnlySpan<VkSurfaceFormatKHR> availableFormats)
     {
-        // If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
-        // there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_SRGB
         if (availableFormats.Length == 1 && availableFormats[0].format == VkFormat.Undefined)
             return new VkSurfaceFormatKHR(VkFormat.B8G8R8A8Srgb, availableFormats[0].colorSpace);
 
         foreach (var availableFormat in availableFormats)
+        {
             if (availableFormat is { format: VkFormat.B8G8R8A8Srgb, colorSpace: VkColorSpaceKHR.SrgbNonLinear })
                 return availableFormat;
+        }
 
         return availableFormats[0];
     }
@@ -185,8 +188,10 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
     private static VkPresentModeKHR ChoosePresentMode(ReadOnlySpan<VkPresentModeKHR> availablePresentModes)
     {
         foreach (var availablePresentMode in availablePresentModes)
+        {
             if (availablePresentMode == VkPresentModeKHR.Mailbox)
                 return availablePresentMode;
+        }
 
         return VkPresentModeKHR.Fifo;
     }

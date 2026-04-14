@@ -12,15 +12,15 @@ internal unsafe class TextureCollection : IDisposable
 
     private readonly VkDescriptorSet _descriptorSet;
 
-    internal readonly List<VkImage> _images = [];
+    private readonly Queue<int> _recycledIndices = [];
 
-    internal readonly List<VkImageView> _imagesView = [];
+    private readonly List<VmaAllocation> _allocation = [];
 
-    internal readonly List<VmaAllocation> _allocation = [];
+    internal readonly List<VkImage> Images = [];
 
-    internal readonly List<Size2> _extents = [];
+    internal readonly List<VkImageView> ImagesView = [];
 
-    internal readonly Queue<int> _recycledIndices = [];
+    internal readonly List<Size2> Extents = [];
 
     public TextureCollection(VulkanDevice device, VkDescriptorSet descriptorSet)
     {
@@ -34,11 +34,11 @@ internal unsafe class TextureCollection : IDisposable
 
     public void Dispose()
     {
-        for (var i = 0; i < _images.Count; i++)
+        for (var i = 0; i < Images.Count; i++)
         {
-            if (_images[i] == VkImage.Null) continue;
-            _device.Api.vkDestroyImageView(_imagesView[i]);
-            Vma.vmaDestroyImage(_device.Allocator, _images[i], _allocation[i]);
+            if (Images[i] == VkImage.Null) continue;
+            _device.Api.vkDestroyImageView(ImagesView[i]);
+            Vma.vmaDestroyImage(_device.Allocator, Images[i], _allocation[i]);
         }
     }
 
@@ -78,19 +78,19 @@ internal unsafe class TextureCollection : IDisposable
 
         if (_recycledIndices.Count == 0)
         {
-            i = _images.Count;
+            i = Images.Count;
 
-            _images.Add(image);
-            _imagesView.Add(imageView);
+            Images.Add(image);
+            ImagesView.Add(imageView);
             _allocation.Add(allocation);
-            _extents.Add(extent);
+            Extents.Add(extent);
         }
         else
         {
             i = _recycledIndices.Dequeue();
 
-            _images[i] = image;
-            _imagesView[i] = imageView;
+            Images[i] = image;
+            ImagesView[i] = imageView;
             _allocation[i] = allocation;
         }
 
@@ -103,12 +103,12 @@ internal unsafe class TextureCollection : IDisposable
     internal void DestroyTexture(Texture texture)
     {
         var i = texture.Index;
-        _device.Api.vkDestroyImageView(_imagesView[i]);
-        Vma.vmaDestroyImage(_device.Allocator, _images[i], _allocation[i]);
+        _device.Api.vkDestroyImageView(ImagesView[i]);
+        Vma.vmaDestroyImage(_device.Allocator, Images[i], _allocation[i]);
 
         _recycledIndices.Enqueue(texture.Index);
-        _images[i] = VkImage.Null;
-        _imagesView[i] = VkImageView.Null;
+        Images[i] = VkImage.Null;
+        ImagesView[i] = VkImageView.Null;
         _allocation[i] = VmaAllocation.Null;
     }
 

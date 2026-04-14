@@ -7,16 +7,6 @@ namespace G2D;
 
 public class Graphics
 {
-    private static readonly VertexStruct[] UnitRectVertices =
-    [
-        new(new Vec2(-0.5F, -0.5F), new Vec2(0, 0), Colors.White), // 0 
-        new(new Vec2(0.5F, -0.5F), new Vec2(1, 0), Colors.White), // 1
-        new(new Vec2(-0.5F, 0.5F), new Vec2(0, 1), Colors.White), // 2
-        new(new Vec2(-0.5F, 0.5F), new Vec2(0, 1), Colors.White), // 2
-        new(new Vec2(0.5F, -0.5F), new Vec2(1, 0), Colors.White), // 1
-        new(new Vec2(0.5F, 0.5F), new Vec2(1, 1), Colors.White) // 3
-    ];
-
     private readonly EmbeddedResource _embeddedResource = new(typeof(VulkanContext).Assembly);
 
     private readonly VulkanContext _context;
@@ -28,8 +18,6 @@ public class Graphics
     private GraphicsShader? _currentShader;
 
     private readonly List<InstanceStruct> _instances = [];
-
-    private BufferSpan _unitRectVerticesBuffer = null!;
 
     private readonly GraphicsShader _defaultShader;
 
@@ -52,22 +40,21 @@ public class Graphics
 
     internal VkCommandBuffer CommandBuffer => _sessionState._commandBuffer;
 
-    internal BufferSpanPool VertexBufferPool => _sessionState._vertexBufferPool;
-
-    internal BufferSpanPool InstanceBufferPool => _sessionState._instanceBufferPool;
+    internal VertexInputManager VertexInputManager => _sessionState.VertexInputManager;
 
     public Color ClearColor { get; set; } = Colors.White;
 
     internal void BeginSession(DrawSessionState sessionState)
     {
         _sessionState = sessionState;
+
         _viewport = new Size2(_sessionState._extent.width, _sessionState._extent.height);
+
         Uniform.View = Mat3X4.Identity;
         Uniform.Color = Colors.White;
         Uniform.Resolution = new Vector2(_viewport.Width, _viewport.Height);
 
-        _unitRectVerticesBuffer = VertexBufferPool.AllocateUpload(UnitRectVertices);
-        Api.vkCmdBindVertexBuffer(CommandBuffer, 0, _unitRectVerticesBuffer.Buffer, _unitRectVerticesBuffer.Offset);
+        Api.vkCmdBindVertexBuffer(CommandBuffer, 0, VertexInputManager.UnitRectVerticesBuffer.Buffer, VertexInputManager.UnitRectVerticesBuffer.Offset);
     }
 
     internal void EndSession()
@@ -91,11 +78,11 @@ public class Graphics
 
         if (_instances.Count == 0) return;
 
-        var instanceBuffer = InstanceBufferPool.AllocateUpload(CollectionsMarshal.AsSpan(_instances));
+        var instanceBuffer = VertexInputManager.InstanceBufferPool.AllocateUpload(CollectionsMarshal.AsSpan(_instances));
 
         Api.vkCmdBindVertexBuffer(CommandBuffer, 1, instanceBuffer.Buffer, instanceBuffer.Offset);
 
-        Api.vkCmdDraw(CommandBuffer, (uint)UnitRectVertices.Length, (uint)_instances.Count, 0, 0);
+        Api.vkCmdDraw(CommandBuffer, (uint)VertexInputManager.UnitRectVertices.Length, (uint)_instances.Count, 0, 0);
 
         _instances.Clear();
     }
@@ -124,7 +111,6 @@ public class Graphics
 
     public void DrawInternal(GraphicsShader shader)
     {
-        throw new NotImplementedException();
     }
 
 

@@ -44,6 +44,7 @@ public partial class G2D
         _eventsManager = new EventsManager();
 
         _game.Load();
+
         _timer.Start();
         while (!ShouldClose)
         {

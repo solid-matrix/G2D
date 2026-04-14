@@ -10,7 +10,5 @@ internal struct DrawSessionState
 
     public UniformBuffer _uniformBuffer;
 
-    public BufferSpanPool _vertexBufferPool;
-
-    public BufferSpanPool _instanceBufferPool;
+    public VertexInputManager VertexInputManager;
 }

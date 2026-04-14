@@ -35,9 +35,11 @@ internal sealed unsafe class VulkanContext
 
     private VkCommandBuffer[] _commandBuffers = null!;
 
-    private BufferSpanPool[] _vertexBufferPools = null!;
+    // private BufferSpanPool[] _vertexBufferPools = null!;
+    //
+    // private BufferSpanPool[] _instanceBufferPools = null!;
 
-    private BufferSpanPool[] _instanceBufferPools = null!;
+    private VertexInputManager[] _vertexInputManagers = null!;
 
 
     private VkFence[] _submitFences = null!;
@@ -53,7 +55,7 @@ internal sealed unsafe class VulkanContext
             engineName.ToVkUtf8String(), engineVersion.ToVkVersion(),
             VulkanVersion,
             [..requiredLayers.Select(s => s.ToVkUtf8String())],
-            [..requiredExtensions.Select(s => s.ToVkUtf8String())],
+            [..requiredExtensions.Select(s => s.ToVkUtf8String()), Vulkan.VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME],
             debugEnabled);
     }
 
@@ -117,18 +119,12 @@ internal sealed unsafe class VulkanContext
         var samplerDescriptorSet = _graphicsLayout.AllocateSamplerDescriptorSet(_descriptorPool);
         _samplerCollection = new SamplerCollection(_device, samplerDescriptorSet);
 
-        // Create Vertex Buffer Pool
-        _vertexBufferPools = new BufferSpanPool[_frameCountInFlight];
-        for (var i = 0; i < _frameCountInFlight; i++)
-        {
-            _vertexBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
-        }
 
-        // Create Instance Buffer Pool
-        _instanceBufferPools = new BufferSpanPool[_frameCountInFlight];
+        // Create Mash Pools
+        _vertexInputManagers = new VertexInputManager[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            _instanceBufferPools[i] = new BufferSpanPool(_device, VkBufferUsageFlags.VertexBuffer, VmaMemoryUsage.CpuToGpu);
+            _vertexInputManagers[i] = new VertexInputManager(_device);
         }
 
         // Create CommandBuffers 
@@ -161,8 +157,7 @@ internal sealed unsafe class VulkanContext
 
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            _vertexBufferPools[i].Dispose();
-            _instanceBufferPools[i].Dispose();
+            _vertexInputManagers[i].Dispose();
             _uniformBuffers[i].Dispose();
         }
 
@@ -221,9 +216,7 @@ internal sealed unsafe class VulkanContext
                 throw new VkException("failed to acquire swap chain image!");
         }
 
-        // reset vertex / instance / index buffer pool
-        _vertexBufferPools[_currentFrame].Reset();
-        _instanceBufferPools[_currentFrame].Reset();
+        _vertexInputManagers[_currentFrame].Reset();
 
         // reset command buffer
         Api.vkResetCommandBuffer(_commandBuffers[_currentFrame], VkCommandBufferResetFlags.None)
@@ -290,8 +283,7 @@ internal sealed unsafe class VulkanContext
             _extent = _swapchain.Extent,
             _commandBuffer = _commandBuffers[_currentFrame],
             _uniformBuffer = _uniformBuffers[_currentFrame],
-            _vertexBufferPool = _vertexBufferPools[_currentFrame],
-            _instanceBufferPool = _instanceBufferPools[_currentFrame]
+            VertexInputManager = _vertexInputManagers[_currentFrame]
         };
 
         draw(drawSession);

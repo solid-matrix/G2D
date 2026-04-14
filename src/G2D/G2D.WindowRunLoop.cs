@@ -7,9 +7,9 @@ public unsafe partial class G2D
 {
     private SDL_Window* _window;
 
-    private KeyboardManager _keyboardManager;
+    private KeyboardManager _keyboardManager = null!;
 
-    private MouseManager _mouseManager;
+    private MouseManager _mouseManager = null!;
 
     private void WindowRunLoop()
     {
@@ -50,7 +50,11 @@ public unsafe partial class G2D
         SDL_Event e = new();
         while (!ShouldClose)
         {
-            while (SDL3.SDL_PollEvent(&e)) WindowProcessEvent(e);
+            while (SDL3.SDL_PollEvent(&e))
+            {
+                WindowProcessEvent(e);
+            }
+
             if (ShouldClose) break;
 
             _mouseManager.Update();
@@ -199,7 +203,11 @@ public unsafe partial class G2D
         uint count;
         var strings = SDL3.SDL_Vulkan_GetInstanceExtensions(&count);
         var extensions = new string[count];
-        for (var i = 0; i < count; i++) extensions[i] = Marshal.PtrToStringUTF8((nint)strings[i])!;
+        for (var i = 0; i < count; i++)
+        {
+            extensions[i] = Marshal.PtrToStringUTF8((nint)strings[i])!;
+        }
+
         return extensions;
     }
 

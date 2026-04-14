@@ -5,11 +5,11 @@ namespace G2D;
 
 public unsafe class MouseManager
 {
-    private float _x;
+    private volatile float _x;
 
-    private float _y;
+    private volatile float _y;
 
-    private MouseButtons _buttons;
+    private volatile MouseButtons _buttons;
 
     internal MouseManager()
     {
@@ -30,13 +30,7 @@ public unsafe class MouseManager
         _buttons = (MouseButtons)SDL3.SDL_GetMouseState(&x, &y);
     }
 
-    public bool IsButtonDown(MouseButtons button)
-    {
-        return (_buttons & button) == button;
-    }
+    public bool IsButtonDown(MouseButtons button) => (_buttons & button) == button;
 
-    public bool IsButtonUp(MouseButtons button)
-    {
-        return (_buttons & button) == 0;
-    }
+    public bool IsButtonUp(MouseButtons button) => (_buttons & button) == 0;
 }

@@ -9,18 +9,19 @@ public class AssetsManager
         _textureCollection = textureCollection;
     }
 
-    public Texture LoadTexture(byte[] raw)
-    {
-        return _textureCollection.CreateTextureFromRaw(raw);
-    }
+    public Texture LoadTexture(byte[] raw) => _textureCollection.CreateTextureFromRaw(raw);
 
     public void UnloadTexture(Texture texture)
     {
         _textureCollection.DestroyTexture(texture);
     }
 
-    public Texture[] LoadTextureAtlas(byte[] atlas, byte[] imageRaw)
+    public Texture[] LoadTextureAtlas(byte[] atlas, byte[] imageRaw) => throw new NotImplementedException();
+
+    private void DecodeImageRawData(byte[] raw)
     {
-        throw new NotImplementedException();
+        // new StbImageSharp.StbImage.stbi__context()
     }
+
+    public Texture LoadTextureFromRgba(ReadOnlySpan<byte> data, int width, int height) => throw new NotImplementedException();
 }

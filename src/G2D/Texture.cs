@@ -8,11 +8,11 @@ public struct Texture
 
     public int Index;
 
-    public Size2 Size => _collection._extents[Index];
+    public Size2 Size => _collection.Extents[Index];
 
-    public float Width => _collection._extents[Index].Width;
+    public float Width => _collection.Extents[Index].Width;
 
-    public float Height => _collection._extents[Index].Height;
+    public float Height => _collection.Extents[Index].Height;
 
     internal Texture(TextureCollection collection, int index)
     {
