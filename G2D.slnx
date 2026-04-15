@@ -3,5 +3,6 @@
   <Project Path="src/G2D.Ecs/G2D.Ecs.csproj" />
   <Project Path="src/G2D.Mathematics/G2D.Mathematics.csproj" />
   <Project Path="src/G2D.Nodes/G2D.Nodes.csproj" />
+  <Project Path="src/G2D.Vulkans/G2D.Vulkans.csproj" />
   <Project Path="src/G2D/G2D.csproj" />
 </Solution>

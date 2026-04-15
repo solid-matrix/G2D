@@ -48,14 +48,13 @@ internal sealed unsafe class VulkanContext
 
     private VkSemaphore[] _releaseSemaphores = null!;
 
-    public VulkanContext(string appName, Version appVersion, string engineName, Version engineVersion, string[] requiredLayers, string[] requiredExtensions, bool debugEnabled = false)
+    public VulkanContext(string appName, Version appVersion, string engineName, Version engineVersion, string[] requiredExtensions, bool debugEnabled = false)
     {
         _instance = new VulkanInstance(
-            appName.ToVkUtf8String(), appVersion.ToVkVersion(),
-            engineName.ToVkUtf8String(), engineVersion.ToVkVersion(),
+            requiredExtensions,
             VulkanVersion,
-            [..requiredLayers.Select(s => s.ToVkUtf8String())],
-            [..requiredExtensions.Select(s => s.ToVkUtf8String()), Vulkan.VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME],
+            appName, appVersion,
+            engineName, engineVersion,
             debugEnabled);
     }
 
@@ -75,11 +74,11 @@ internal sealed unsafe class VulkanContext
         _surface = new VkSurfaceKHR((ulong)surfaceHandle);
 
         // Select Physical Device 
-        var physicalDevices = _instance.EnumeratePhysicalDevices();
-        var physicalDevice = VulkanUtilities.SelectPhysicalDevice(_instance, physicalDevices, _surface);
+        var physicalDevices = _instance.EnumerateGpus();
+        var physicalDevice = VulkanUtilities.SelectGpu(_instance, physicalDevices, _surface);
         if (physicalDevice == VkPhysicalDevice.Null) throw new Exception("failed to find a suitable physical device!");
 
-        VulkanUtilities.QueryRequiredQueueFamilies(_instance, physicalDevice, _surface);
+        VulkanUtilities.QueryQueueFamilies(_instance, physicalDevice, _surface);
 
         // Create Device
         _device = new VulkanDevice(_instance, physicalDevice, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
@@ -131,7 +130,7 @@ internal sealed unsafe class VulkanContext
         _commandBuffers = new VkCommandBuffer[_frameCountInFlight];
         for (var i = 0; i < _frameCountInFlight; i++)
         {
-            Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out _commandBuffers[i])
+            Api.vkAllocateCommandBuffer(_device.GetCommandPool(QueueType.Graphics), out _commandBuffers[i])
                 .CheckResult("failed to allocate command buffer");
         }
 
@@ -196,7 +195,7 @@ internal sealed unsafe class VulkanContext
         }
 
         // wait for last submit
-        var result = Api.vkWaitForFences(_submitFences[_currentFrame], VkBool32.True, 0);
+        var result = Api.vkGetFenceStatus(_submitFences[_currentFrame]);
         if (result != VkResult.Success) return false;
 
         // acquire next image
@@ -321,7 +320,7 @@ internal sealed unsafe class VulkanContext
             pSignalSemaphores = &releaseSemaphore
         };
         Api.vkResetFences(_submitFences[_currentFrame]);
-        Api.vkQueueSubmit(_device.GraphicsQueue, 1, &submitInfo, _submitFences[_currentFrame])
+        Api.vkQueueSubmit(_device.GetQueue(QueueType.Graphics), 1, &submitInfo, _submitFences[_currentFrame])
             .CheckResult("failed to queue submit");
 
         // present
@@ -334,7 +333,7 @@ internal sealed unsafe class VulkanContext
             waitSemaphoreCount = 1u,
             pWaitSemaphores = &releaseSemaphore
         };
-        result = Api.vkQueuePresentKHR(_device.PresentQueue, &presentInfo);
+        result = Api.vkQueuePresentKHR(_device.GetQueue(QueueType.Graphics), &presentInfo);
 
         switch (result)
         {

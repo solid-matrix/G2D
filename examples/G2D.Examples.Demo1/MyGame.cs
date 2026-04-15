@@ -53,6 +53,8 @@ public partial class MyGame : IGame
     {
         _renderFps.Update();
 
+        G2D.Graphics.Draw(new Rect(0, 0, 200, 200), Colors.Blue);
+
         G2D.Graphics.Draw(
             _texture,
             Sampler.LinearClamp,

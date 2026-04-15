@@ -9,31 +9,32 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
     private readonly VkSurfaceKHR _surface;
 
+    private VkSwapchainKHR _swapchain;
+
+    private readonly Func<Size2I> _surfaceSizeProvider;
+
+
     private VkExtent2D _extent;
 
     private VkFormat _format;
 
-    private uint _imageCount;
-
-    private VkImage[] _images;
-
-    private VkImageView[] _imageViews;
-
-    private bool _isValid;
-
     private VkPresentModeKHR _presentMode;
 
-    private VkSwapchainKHR _swapchain;
+    private uint _imageCount;
 
-    private readonly Func<Size2I> _surfaceSizeProvider;
+
+    private VkImage[] _images = null!;
+
+    private VkImageView[] _imageViews = null!;
+
+
+    private bool _isValid;
 
 
     public VulkanSwapchain(VulkanDevice device, VkSurfaceKHR surface, Func<Size2I> surfaceSizeProvider)
     {
         _device = device;
         _surface = surface;
-        _images = [];
-        _imageViews = [];
         _surfaceSizeProvider = surfaceSizeProvider;
         Create();
     }
@@ -74,9 +75,9 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
 
         if (size.Area == 0) return;
 
-        var capabilities = _device.Instance.GetPhysicalDeviceSurfaceCapabilities(_device.PhysicalDevice, _surface);
-        var formats = _device.Instance.GetPhysicalDeviceSurfaceFormats(_device.PhysicalDevice, _surface);
-        var presentModes = _device.Instance.GetPhysicalDeviceSurfacePresentModes(_device.PhysicalDevice, _surface);
+        var capabilities = _device.Instance.GetPhysicalDeviceSurfaceCapabilities(_device.Gpu, _surface);
+        var formats = _device.Instance.GetPhysicalDeviceSurfaceFormats(_device.Gpu, _surface);
+        var presentModes = _device.Instance.GetPhysicalDeviceSurfacePresentModes(_device.Gpu, _surface);
 
         var surfaceFormat = ChooseSurfaceFormat(formats);
 
@@ -88,7 +89,7 @@ internal sealed unsafe class VulkanSwapchain : IDisposable
         if (_extent.width == 0 || _extent.height == 0) return;
 
 
-        _imageCount = capabilities.minImageCount;
+        _imageCount = capabilities.minImageCount + 1;
         if (capabilities.maxImageCount > 0 && _imageCount > capabilities.maxImageCount) _imageCount = capabilities.maxImageCount;
 
         VkSwapchainCreateInfoKHR createInfo = new()

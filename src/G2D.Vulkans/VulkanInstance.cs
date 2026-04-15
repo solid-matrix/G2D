@@ -1,9 +1,15 @@
-﻿using Vortice.Vulkan;
+﻿using System.Runtime.InteropServices;
+using Vortice.Vulkan;
 
 namespace G2D;
 
-internal sealed unsafe class VulkanInstance : IDisposable
+public sealed unsafe class VulkanInstance : IDisposable
 {
+    private const string DefaultApplicationName = "G2D Application";
+
+    private const string DefaultEngineName = "Custom";
+
+
     private readonly VkInstance _instance;
 
     private readonly VkInstanceApi _api;
@@ -14,49 +20,51 @@ internal sealed unsafe class VulkanInstance : IDisposable
 
     private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
 
-
-    public VulkanInstance(VkUtf8String appName, VkVersion appVersion, VkUtf8String engineName, VkVersion engineVersion, VkVersion apiVersion, VkUtf8String[] requiredLayers, VkUtf8String[] requiredExtensions, bool debugEnabled = false)
+    public VulkanInstance(string[] extensions, VkVersion apiVersion, string appName = DefaultApplicationName, Version? appVersion = null, string engineName = DefaultEngineName, Version? engineVersion = null, bool debugEnabled = false)
     {
         _debugEnabled = debugEnabled;
-
-        if (!VulkanUtilities.CheckIsSupported(apiVersion)) throw new VkException("vulkan not supported");
         _apiVersion = apiVersion;
 
-        HashSet<VkUtf8String> availableLayerSet = [..VulkanUtilities.EnumerateInstanceLayerNames()];
-        HashSet<VkUtf8String> availableExtensionSet = [..VulkanUtilities.EnumerateInstanceExtensionNames()];
+        if (!CheckIsSupported(_apiVersion))
+            throw new VkException("vulkan not supported");
 
-        HashSet<VkUtf8String> requiredLayerSet = [..requiredLayers];
-        HashSet<VkUtf8String> requiredExtensionSet = [.. requiredExtensions];
-
-        if (_debugEnabled)
+        var appInfo = new VkApplicationInfo
         {
-            requiredLayerSet.Add(Vulkan.VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME);
-            requiredExtensionSet.Add(Vulkan.VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
-
-        if (!requiredLayerSet.All(availableLayerSet.Contains))
-            throw new Exception("vulkan required instance layer not supported");
-
-        if (!requiredExtensionSet.All(availableExtensionSet.Contains))
-            throw new Exception("vulkan required instance extension not supported");
-
-        VkApplicationInfo appInfo = new()
-        {
-            pApplicationName = appName,
-            applicationVersion = appVersion,
-            pEngineName = engineName,
-            engineVersion = engineVersion,
-            apiVersion = apiVersion
+            pApplicationName = appName.ToVkUtf8String(),
+            applicationVersion = appVersion.ToVkVersion(),
+            pEngineName = engineName.ToVkUtf8String(),
+            engineVersion = engineVersion.ToVkVersion(),
+            apiVersion = _apiVersion
         };
 
+
+        HashSet<VkUtf8String> availableLayers = [..EnumerateInstanceLayers()];
+        HashSet<VkUtf8String> availableExtensions = [..EnumerateInstanceExtensions()];
+
+        HashSet<VkUtf8String> requiredLayers = [];
+        HashSet<VkUtf8String> requiredExtensions = [.. extensions.ToVkUtf8StringArray()];
+
         if (_debugEnabled)
         {
-            Console.WriteLine($"vulkan instance layer enabled: {string.Join(", ", requiredLayerSet)}");
-            Console.WriteLine($"vulkan instance extension enabled: {string.Join(", ", requiredExtensionSet)}");
+            requiredLayers.Add(Vulkan.VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME);
+            requiredExtensions.Add(Vulkan.VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
 
-        using VkStringArray vkLayerNames = new(requiredLayerSet);
-        using VkStringArray vkExtensionNames = new(requiredExtensionSet);
+        if (!requiredLayers.All(availableLayers.Contains))
+            throw new Exception("vulkan required instance layer not supported");
+
+        if (!requiredExtensions.All(availableExtensions.Contains))
+            throw new Exception("vulkan required instance extension not supported");
+
+
+        if (_debugEnabled)
+        {
+            Console.WriteLine($"vulkan instance layer enabled: {string.Join(", ", requiredLayers)}");
+            Console.WriteLine($"vulkan instance extension enabled: {string.Join(", ", requiredExtensions)}");
+        }
+
+        using VkStringArray vkLayerNames = new(requiredLayers);
+        using VkStringArray vkExtensionNames = new(requiredExtensions);
 
         VkInstanceCreateInfo instanceCreateInfo = new()
         {
@@ -72,7 +80,7 @@ internal sealed unsafe class VulkanInstance : IDisposable
         {
             debugUtilsCreateInfo.messageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.Error | VkDebugUtilsMessageSeverityFlagsEXT.Warning;
             debugUtilsCreateInfo.messageType = VkDebugUtilsMessageTypeFlagsEXT.Validation | VkDebugUtilsMessageTypeFlagsEXT.Performance;
-            debugUtilsCreateInfo.pfnUserCallback = &VulkanUtilities.DebugMessengerCallback;
+            debugUtilsCreateInfo.pfnUserCallback = &DebugMessengerCallback;
             instanceCreateInfo.pNext = &debugUtilsCreateInfo;
         }
 
@@ -102,7 +110,8 @@ internal sealed unsafe class VulkanInstance : IDisposable
         _api.vkDestroyInstance();
     }
 
-    public VkPhysicalDevice[] EnumeratePhysicalDevices()
+
+    public VkPhysicalDevice[] EnumerateGpus()
     {
         _api.vkEnumeratePhysicalDevices(out var count)
             .CheckResult("failed to enumerate physical devices");
@@ -176,6 +185,80 @@ internal sealed unsafe class VulkanInstance : IDisposable
         return names;
     }
 
+    public static bool CheckIsSupported(VkVersion requiredApiVersion)
+    {
+        try
+        {
+            var res = Vulkan.vkInitialize();
+            if (res != VkResult.Success) return false;
 
-    public static implicit operator VkInstance(VulkanInstance instance) => instance._instance;
+            var version = Vulkan.vkEnumerateInstanceVersion();
+            return version >= requiredApiVersion;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public static VkUtf8String[] EnumerateInstanceLayers()
+    {
+        Vulkan.vkEnumerateInstanceLayerProperties(out var count)
+            .CheckResult("failed to get instance layer properties");
+
+        if (count == 0) return [];
+
+        var props = new VkLayerProperties[count];
+
+        Vulkan.vkEnumerateInstanceLayerProperties(props)
+            .CheckResult("failed to get instance layer properties");
+
+        var names = new VkUtf8String[count];
+        for (var i = 0; i < count; i++)
+        {
+            fixed (byte* pLayerName = props[i].layerName)
+            {
+                names[i] = new VkUtf8String(pLayerName);
+            }
+        }
+
+        return names;
+    }
+
+    public static VkUtf8String[] EnumerateInstanceExtensions()
+    {
+        Vulkan.vkEnumerateInstanceExtensionProperties(out var count)
+            .CheckResult("failed to get instance layer properties");
+
+        if (count == 0) return [];
+
+        var props = new VkExtensionProperties[(int)count];
+
+        Vulkan.vkEnumerateInstanceExtensionProperties(props)
+            .CheckResult("failed to get instance layer properties");
+
+        var names = new VkUtf8String[count];
+        for (var i = 0; i < count; i++)
+        {
+            fixed (byte* pExtensionName = props[i].extensionName)
+            {
+                names[i] = new VkUtf8String(pExtensionName);
+            }
+        }
+
+        return names;
+    }
+
+    [UnmanagedCallersOnly]
+    public static uint DebugMessengerCallback(VkDebugUtilsMessageSeverityFlagsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* userData)
+    {
+        var message = new VkUtf8String(pCallbackData->pMessage);
+        Console.WriteLine($"[Vulkan][{messageTypes}][{messageSeverity}]: {message}");
+        return Vulkan.VK_FALSE;
+    }
+
+    public static implicit operator VkInstance(VulkanInstance instance)
+    {
+        return instance._instance;
+    }
 }

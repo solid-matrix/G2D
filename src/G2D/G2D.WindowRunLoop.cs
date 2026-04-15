@@ -37,7 +37,7 @@ public unsafe partial class G2D
         _initBarrier.SignalAndWait();
 
         // create vulkan surface
-        _vkSurfaceHandle = CreateVulkanSurface(_window, _vkInstanceHandle);
+        // _vkSurfaceHandle = CreateVulkanSurface(_window, _vkInstanceHandle);
         (_windowWidth, _windowHeight) = GetClientSize(_window);
         _displayRefreshRate = GetDisplayRefreshRate(_window);
 

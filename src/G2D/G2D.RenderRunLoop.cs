@@ -2,7 +2,7 @@
 
 namespace G2D;
 
-public partial class G2D
+public unsafe partial class G2D
 {
     private VulkanContext _vulkanContext = null!;
 
@@ -23,7 +23,6 @@ public partial class G2D
         _vulkanContext = new VulkanContext(
             _config.ApplicationName, _config.ApplicationVersion,
             _config.EngineName, _config.EngineVersion,
-            [],
             _requiredVulkanInstanceExtensions,
             _config.EnableDebug
         );
@@ -31,6 +30,8 @@ public partial class G2D
 
         _initBarrier.SignalAndWait();
         // wait surface creating & window size
+        _vkSurfaceHandle = CreateVulkanSurface(_window, _vkInstanceHandle);
+
         _initBarrier.SignalAndWait();
 
         // initialize vulkan context

@@ -156,7 +156,7 @@ public class Graphics
         var instance = new InstanceStruct
         {
             ModelTransform = Mat3X2.CreateAffine(rect.Position + rect.Size / 2, 0, rect.Size, Vec2.Zero, Vec2.Zero),
-            Color = Colors.White,
+            Color = color,
             TextureOffset = Vec2.Zero,
             TextureScale = Vec2.One,
             Layer = 0,
@@ -170,7 +170,8 @@ public class Graphics
     {
         var instance = new InstanceStruct
         {
-            ModelTransform = Mat3X2.CreateAffine(position, rotation, scale * texture.Size, origin / texture.Size, shear), Color = Colors.White,
+            ModelTransform = Mat3X2.CreateAffine(position, rotation, scale * texture.Size, origin / texture.Size, shear),
+            Color = Colors.White,
             TextureOffset = Vec2.Zero,
             TextureScale = Vec2.One,
             Layer = 0,

@@ -12,12 +12,11 @@
         <PackageReference Include="ppy.SDL3_mixer-CS" Version="2026.320.0"/>
         <PackageReference Include="ppy.SDL3_ttf-CS" Version="2026.320.0"/>
         <PackageReference Include="StbImageSharp" Version="2.30.15"/>
-        <PackageReference Include="Vortice.Vulkan" Version="3.2.1"/>
-        <PackageReference Include="Vortice.VulkanMemoryAllocator" Version="1.7.0"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\G2D.Mathematics\G2D.Mathematics.csproj"/>
+        <ProjectReference Include="..\G2D.Vulkans\G2D.Vulkans.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -1,5 +1,4 @@
 ﻿using G2D.Mathematics;
-using StbImageSharp;
 using Vortice.Vulkan;
 
 namespace G2D;
@@ -26,8 +25,6 @@ internal unsafe class TextureCollection : IDisposable
     {
         _device = device;
         _descriptorSet = descriptorSet;
-
-        Create1PixelWhiteTexture();
     }
 
     public VkDescriptorSet DescriptorSet => _descriptorSet;
@@ -42,22 +39,9 @@ internal unsafe class TextureCollection : IDisposable
         }
     }
 
-    private void Create1PixelWhiteTexture()
+    internal Texture CreateTexture(ReadOnlySpan<byte> data, uint width, uint height)
     {
-        byte[] data = [255, 255, 255, 255];
-        var texture = CreateTextureFromRgba(data, 1, 1);
-        if (texture.Index != 0) throw new Exception("failed to create 1 pixel white texture at 0");
-    }
-
-    internal Texture CreateTextureFromRaw(byte[] raw)
-    {
-        var (image, allocation, extent) = InternalCreateTextureFromRawImage(raw);
-        return CreateTexture(image, allocation, extent);
-    }
-
-    internal Texture CreateTextureFromRgba(ReadOnlySpan<byte> data, uint width, uint height)
-    {
-        var (image, allocation, extent) = InternalCreateTextureFromRgbaData(data, width, height);
+        var (image, allocation, extent) = InternalUploadTextureData(data, width, height);
         return CreateTexture(image, allocation, extent);
     }
 
@@ -99,7 +83,6 @@ internal unsafe class TextureCollection : IDisposable
         return new Texture(this, i);
     }
 
-
     internal void DestroyTexture(Texture texture)
     {
         var i = texture.Index;
@@ -112,17 +95,7 @@ internal unsafe class TextureCollection : IDisposable
         _allocation[i] = VmaAllocation.Null;
     }
 
-    private (VkImage, VmaAllocation, Size2) InternalCreateTextureFromRawImage(byte[] raw)
-    {
-        var result = ImageResult.FromMemory(raw, ColorComponents.RedGreenBlueAlpha);
-
-        var (image, allocation, size) = InternalCreateTextureFromRgbaData(result.Data, (uint)result.Width, (uint)result.Height);
-
-        return (image, allocation, size);
-    }
-
-
-    private (VkImage, VmaAllocation, Size2) InternalCreateTextureFromRgbaData(ReadOnlySpan<byte> data, uint width, uint height)
+    private (VkImage, VmaAllocation, Size2) InternalUploadTextureData(ReadOnlySpan<byte> data, uint width, uint height)
     {
         // allocate staging buffer
         var stagingBufferInfo = new VkBufferCreateInfo
@@ -171,7 +144,7 @@ internal unsafe class TextureCollection : IDisposable
         Vma.vmaCreateImage(_device.Allocator, &imageInfo, &imageAllocationInfo, out var image, out var imageAllocation, out _);
 
         // Create Temporary Command Buffer
-        _device.Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out var commandBuffer);
+        _device.Api.vkAllocateCommandBuffer(_device.GetCommandPool(QueueType.Graphics), out var commandBuffer);
 
         _device.Api.vkBeginCommandBuffer(commandBuffer, VkCommandBufferUsageFlags.OneTimeSubmit);
 
@@ -225,12 +198,12 @@ internal unsafe class TextureCollection : IDisposable
             pCommandBuffers = &commandBuffer
         };
 
-        _device.Api.vkQueueSubmit(_device.GraphicsQueue, 1, &submitInfo, fence);
+        _device.Api.vkQueueSubmit(_device.GetQueue(QueueType.Graphics), 1, &submitInfo, fence);
         _device.Api.vkWaitForFences(fence, true, ulong.MaxValue);
 
         // cleanup
         _device.Api.vkDestroyFence(fence);
-        _device.Api.vkFreeCommandBuffers(_device.GraphicsCommandPool, commandBuffer);
+        _device.Api.vkFreeCommandBuffers(_device.GetCommandPool(QueueType.Graphics), commandBuffer);
         Vma.vmaDestroyBuffer(_device.Allocator, stagingBuffer, stagingAllocation);
 
         return (image, imageAllocation, new Size2((int)width, (int)height));
