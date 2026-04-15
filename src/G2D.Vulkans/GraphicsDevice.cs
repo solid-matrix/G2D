@@ -2,9 +2,11 @@
 
 namespace G2D;
 
-public sealed unsafe class Device : IDisposable
+public sealed unsafe class GraphicsDevice : IDisposable
 {
-    private readonly Instance _instance;
+    public const int MaxFrameCountInFlight = 3;
+
+    private readonly VulkanInstance _instance;
 
     private readonly VkPhysicalDevice _gpu;
 
@@ -18,14 +20,20 @@ public sealed unsafe class Device : IDisposable
 
     private readonly VkQueue[] _queues = new VkQueue[QueueType.GetTypeCount()];
 
-    private readonly CommandPool[] _commandPools = new CommandPool[QueueType.GetTypeCount()];
+    private readonly VkCommandPool[] _commandPools = new VkCommandPool[QueueType.GetTypeCount()];
 
-    public Device(Instance instance, VkSurfaceKHR surface, VkUtf8String[] extensions)
+    private readonly SemaphorePool _semaphorePool;
+
+    private readonly FencePool _fencePool;
+
+    private readonly FrameManager _frameManager;
+
+    public GraphicsDevice(VulkanInstance instance, VkSurfaceKHR surface, VkUtf8String[] extensions)
         : this(instance, VulkanUtilities.SelectGpu(instance, instance.EnumerateGpus(), surface), surface, extensions)
     {
     }
 
-    public Device(Instance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface, VkUtf8String[] extensions)
+    public GraphicsDevice(VulkanInstance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface, VkUtf8String[] extensions)
     {
         _instance = instance;
         _gpu = gpu;
@@ -135,12 +143,16 @@ public sealed unsafe class Device : IDisposable
 
         foreach (var type in QueueType.GetAllTypes())
         {
-            _commandPools[type] = CreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, type);
+            _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _queueFamilies[type], out _commandPools[type]);
         }
+
+        _semaphorePool = new SemaphorePool(this);
+        _fencePool = new FencePool(this);
+        _frameManager = new FrameManager(this, MaxFrameCountInFlight);
     }
 
 
-    public Instance Instance => _instance;
+    public VulkanInstance Instance => _instance;
 
     public VkPhysicalDevice Gpu => _gpu;
 
@@ -148,45 +160,38 @@ public sealed unsafe class Device : IDisposable
 
     public VkDeviceApi Api => _api;
 
+    public SemaphorePool SemaphorePool => _semaphorePool;
+
+    public FencePool FencePool => _fencePool;
+
+    public FrameManager FrameManager => _frameManager;
+
+    public VkQueue GraphicsQueue => _queues[QueueType.Graphics];
+
+    public VkQueue ComputeQueue => _queues[QueueType.Compute];
+
+    public VkQueue TransferQueue => _queues[QueueType.Transfer];
+
+    public VkCommandPool GraphicsCommandPool => _commandPools[QueueType.Graphics];
+
+    public VkCommandPool ComputeCommandPool => _commandPools[QueueType.Compute];
+
+    public VkCommandPool TransferCommandPool => _commandPools[QueueType.Transfer];
+
+
     public void Dispose()
     {
+        _semaphorePool.Dispose();
+        _fencePool.Dispose();
+        _frameManager.Dispose();
+
         foreach (var i in QueueType.GetAllTypes())
         {
-            _commandPools[i].Dispose();
+            _api.vkDestroyCommandPool(_commandPools[i]);
         }
 
         Vma.vmaDestroyAllocator(_vmaAllocator);
         _api.vkDestroyDevice();
-    }
-
-    public VkQueue GetQueue(QueueType type)
-    {
-        return _queues[type] == VkQueue.Null ? throw new Exception("failed to get queue") : _queues[type];
-    }
-
-    public CommandPool GetCommandPool(QueueType type)
-    {
-        return _commandPools[type];
-    }
-
-    public CommandPool CreateCommandPool(VkCommandPoolCreateFlags flags, QueueType queueType)
-    {
-        return new CommandPool(this, flags, _queueFamilies[queueType]);
-    }
-
-    public CommandBuffer CreateCommandBuffer(QueueType queueType, VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
-    {
-        return GetCommandPool(queueType).CreateCommandBuffer(level);
-    }
-
-    public Fence CreateFence(VkFenceCreateFlags flags)
-    {
-        return new Fence(this, flags);
-    }
-
-    public Semaphore CreateSemaphore()
-    {
-        return new Semaphore(this);
     }
 
     public void WaitIdle()
@@ -195,7 +200,7 @@ public sealed unsafe class Device : IDisposable
             .CheckResult("failed vulkan device wait idle");
     }
 
-    public static implicit operator VkDevice(Device device)
+    public static implicit operator VkDevice(GraphicsDevice device)
     {
         return device._device;
     }

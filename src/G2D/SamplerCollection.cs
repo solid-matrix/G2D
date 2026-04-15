@@ -4,13 +4,13 @@ namespace G2D;
 
 internal unsafe class SamplerCollection : IDisposable
 {
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     private readonly VkSampler[] _samplers;
 
     private readonly VkDescriptorSet _descriptorSet;
 
-    public SamplerCollection(Device device, VkDescriptorSet descriptorSet)
+    public SamplerCollection(GraphicsDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
         _descriptorSet = descriptorSet;
@@ -32,7 +32,7 @@ internal unsafe class SamplerCollection : IDisposable
         }
     }
 
-    private static VkSampler[] CreateStaticSamplers(Device device)
+    private static VkSampler[] CreateStaticSamplers(GraphicsDevice device)
     {
         var samplers = new VkSampler[8];
 
@@ -119,7 +119,7 @@ internal unsafe class SamplerCollection : IDisposable
         return samplers;
     }
 
-    private static void UpdateDescriptorSet(Device device, VkDescriptorSet descriptorSet, ReadOnlySpan<VkSampler> samplers)
+    private static void UpdateDescriptorSet(GraphicsDevice device, VkDescriptorSet descriptorSet, ReadOnlySpan<VkSampler> samplers)
     {
         var infos = new VkDescriptorImageInfo[(uint)samplers.Length];
 

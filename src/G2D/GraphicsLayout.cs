@@ -173,7 +173,7 @@ internal unsafe class GraphicsLayout : IDisposable
         depthBiasSlopeFactor = 0
     };
 
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     private readonly VkFormat _format;
 
@@ -187,7 +187,7 @@ internal unsafe class GraphicsLayout : IDisposable
 
     private readonly List<VkPipeline> _pipelines;
 
-    public GraphicsLayout(Device device, VkFormat swapchainFormat)
+    public GraphicsLayout(GraphicsDevice device, VkFormat swapchainFormat)
     {
         _device = device;
         _format = swapchainFormat;
@@ -430,7 +430,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return descriptorSet;
     }
 
-    public static VkShaderModule CreateShaderModule(Device device, byte[] code)
+    public static VkShaderModule CreateShaderModule(GraphicsDevice device, byte[] code)
     {
         fixed (byte* pCode = code)
         {
@@ -441,7 +441,7 @@ internal unsafe class GraphicsLayout : IDisposable
         }
     }
 
-    private static VkPipelineLayout CreatePipelineLayout(Device device, VkDescriptorSetLayout[] descriptorSetLayouts)
+    private static VkPipelineLayout CreatePipelineLayout(GraphicsDevice device, VkDescriptorSetLayout[] descriptorSetLayouts)
     {
         VkPushConstantRange[] pushConstantRanges =
         [
@@ -468,7 +468,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return pipelineLayout;
     }
 
-    private static VkDescriptorSetLayout CreateUniformDescriptorSetLayout(Device device)
+    private static VkDescriptorSetLayout CreateUniformDescriptorSetLayout(GraphicsDevice device)
     {
         var uniformDescriptorSetLayoutBinding = new VkDescriptorSetLayoutBinding
         {
@@ -489,7 +489,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return ddescriptorSetLayout;
     }
 
-    private static VkDescriptorSetLayout CreateSamplerDescriptorSetLayout(Device device)
+    private static VkDescriptorSetLayout CreateSamplerDescriptorSetLayout(GraphicsDevice device)
     {
         var binding = new VkDescriptorSetLayoutBinding
         {
@@ -509,7 +509,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return samplerDescriptorSetLayout;
     }
 
-    private static VkDescriptorSetLayout CreateTextureDescriptorSetLayout(Device device)
+    private static VkDescriptorSetLayout CreateTextureDescriptorSetLayout(GraphicsDevice device)
     {
         var binding = new VkDescriptorSetLayoutBinding
         {

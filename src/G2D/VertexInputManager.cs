@@ -17,7 +17,7 @@ internal class VertexInputManager : IDisposable
 
     // private static readonly uint[] UnitRectIndices = [0, 1, 2, 2, 1, 3];
 
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     internal readonly BufferSpanPool VertexBufferPool;
 
@@ -25,7 +25,7 @@ internal class VertexInputManager : IDisposable
 
     internal BufferSpan UnitRectVerticesBuffer;
 
-    internal VertexInputManager(Device device)
+    internal VertexInputManager(GraphicsDevice device)
     {
         _device = device;
 

@@ -2,5 +2,5 @@
 
 public interface IDrawable
 {
-    void Draw(float alpha);
+    void Draw(Graphics graphics, float alpha);
 }

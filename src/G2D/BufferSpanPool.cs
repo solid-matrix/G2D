@@ -6,7 +6,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 {
     private const uint UnitBufferSize = 1048576;
 
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     private readonly VkBufferUsageFlags _bufferUsage;
 
@@ -24,7 +24,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     private ulong _sizeCount;
 
-    public BufferSpanPool(Device device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
+    public BufferSpanPool(GraphicsDevice device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
     {
         _device = device;
         _bufferUsage = bufferUsage;

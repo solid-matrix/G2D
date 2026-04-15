@@ -9,11 +9,11 @@ internal sealed unsafe class VulkanContext
 
     private static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
-    private readonly Instance _instance;
+    private readonly VulkanInstance _instance;
 
     private VkSurfaceKHR _surface;
 
-    private Device _device = null!;
+    private GraphicsDevice _device;
 
     private Swapchain _swapchain = null!;
 
@@ -35,7 +35,7 @@ internal sealed unsafe class VulkanContext
 
     public VulkanContext(string appName, Version appVersion, string engineName, Version engineVersion, string[] requiredExtensions, bool debugEnabled = false)
     {
-        _instance = new Instance(
+        _instance = new VulkanInstance(
             requiredExtensions,
             VulkanVersion,
             appName, appVersion,
@@ -58,7 +58,7 @@ internal sealed unsafe class VulkanContext
     {
         _surface = new VkSurfaceKHR((ulong)surfaceHandle);
 
-        _device = new Device(_instance, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
+        _device = new GraphicsDevice(_instance, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
 
         _swapchain = new Swapchain(_device, _surface, windowSizeProvidor);
 
@@ -67,16 +67,16 @@ internal sealed unsafe class VulkanContext
 
         // Create DescriptorPool
         _descriptorPool = VulkanUtilities.CreateDescriptorPool(_device,
-            _swapchain.FrameCountInFlight * 3,
-            GraphicsLayout.MaxUniformCount * _swapchain.FrameCountInFlight,
+            GraphicsDevice.MaxFrameCountInFlight * 3,
+            GraphicsLayout.MaxUniformCount * GraphicsDevice.MaxFrameCountInFlight,
             GraphicsLayout.MaxImageCount,
             GraphicsLayout.MaxSamplerCount
         );
 
         // Create UniformBuffers
-        var uniformDescriptorSets = _graphicsLayout.AllocateUniformDescriptorSets(_descriptorPool, _swapchain.FrameCountInFlight);
-        _uniformBuffers = new UniformBuffer[_swapchain.FrameCountInFlight];
-        for (var i = 0; i < _swapchain.FrameCountInFlight; i++)
+        var uniformDescriptorSets = _graphicsLayout.AllocateUniformDescriptorSets(_descriptorPool, GraphicsDevice.MaxFrameCountInFlight);
+        _uniformBuffers = new UniformBuffer[GraphicsDevice.MaxFrameCountInFlight];
+        for (var i = 0; i < GraphicsDevice.MaxFrameCountInFlight; i++)
         {
             _uniformBuffers[i] = new UniformBuffer(_device, uniformDescriptorSets[i]);
         }
@@ -91,8 +91,8 @@ internal sealed unsafe class VulkanContext
 
 
         // Create Mash Pools
-        _vertexInputManagers = new VertexInputManager[_swapchain.FrameCountInFlight];
-        for (var i = 0; i < _swapchain.FrameCountInFlight; i++)
+        _vertexInputManagers = new VertexInputManager[GraphicsDevice.MaxFrameCountInFlight];
+        for (var i = 0; i < GraphicsDevice.MaxFrameCountInFlight; i++)
         {
             _vertexInputManagers[i] = new VertexInputManager(_device);
         }
@@ -103,7 +103,7 @@ internal sealed unsafe class VulkanContext
     {
         _device.WaitIdle();
 
-        for (var i = 0; i < _swapchain.FrameCountInFlight; i++)
+        for (var i = 0; i < GraphicsDevice.MaxFrameCountInFlight; i++)
         {
             _vertexInputManagers[i].Dispose();
             _uniformBuffers[i].Dispose();
@@ -126,28 +126,28 @@ internal sealed unsafe class VulkanContext
         _instance.Dispose();
     }
 
+
     internal bool RenderFrame(Color clearColor, Action<DrawSessionState> draw)
     {
-        var frame = _swapchain.Acquire();
-        if (frame == null) return false;
-        var commandbuffer = frame.CommandBuffer;
+        if (!_device.FrameManager.TryFetch(out var commandBuffer, out var frameIndex, out var acquireSemaphore)) return false;
 
-        // ------------------------------------------------------------------------------------------------
+        if (!_swapchain.TryAcquire(out var imageIndex, acquireSemaphore)) return false;
 
-        // begin command buffer
-        Api.vkBeginCommandBuffer(commandbuffer, VkCommandBufferUsageFlags.OneTimeSubmit)
+
+        _device.Api.vkBeginCommandBuffer(commandBuffer, VkCommandBufferUsageFlags.OneTimeSubmit)
             .CheckResult("failed to create command buffer");
 
-        // transit image layout for color attachment
-        VulkanUtilities.TransitionImageLayout(_device, commandbuffer, frame,
+
+        VulkanUtilities.TransitionImageLayout(_device, commandBuffer, _swapchain.Images[imageIndex],
             VkImageLayout.Undefined, VkImageLayout.ColorAttachmentOptimal,
             VkAccessFlags2.None, VkAccessFlags2.ColorAttachmentWrite,
             VkPipelineStageFlags2.TopOfPipe, VkPipelineStageFlags2.ColorAttachmentOutput);
 
+
         // begin rendering
         VkRenderingAttachmentInfo colorAttachment = new()
         {
-            imageView = frame,
+            imageView = _swapchain.ImageViews[imageIndex],
             imageLayout = VkImageLayout.ColorAttachmentOptimal,
             loadOp = VkAttachmentLoadOp.Clear,
             storeOp = VkAttachmentStoreOp.Store,
@@ -162,7 +162,7 @@ internal sealed unsafe class VulkanContext
             pColorAttachments = &colorAttachment
         };
 
-        Api.vkCmdBeginRendering(commandbuffer, &renderingInfo);
+        Api.vkCmdBeginRendering(commandBuffer, &renderingInfo);
 
         // dynamic set viewport 
         VkViewport viewport = new()
@@ -174,46 +174,49 @@ internal sealed unsafe class VulkanContext
             minDepth = 0.0f,
             maxDepth = 1.0f
         };
-        Api.vkCmdSetViewport(commandbuffer, 0, 1, &viewport);
+        Api.vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
         // dynamic set scissor
         VkRect2D scissor = new(VkOffset2D.Zero, _swapchain.Extent);
-        Api.vkCmdSetScissor(commandbuffer, 0, 1, &scissor);
+        Api.vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
         // update & bind uniform buffer descriptor set
-        Api.vkCmdBindDescriptorSets(commandbuffer, VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 0, _uniformBuffers[frame.Index].DescriptorSet);
+        Api.vkCmdBindDescriptorSets(commandBuffer, VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 0, _uniformBuffers[frameIndex].DescriptorSet);
 
         // bind image descriptor set
-        Api.vkCmdBindDescriptorSets(commandbuffer, VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 1, _textureCollection.DescriptorSet);
+        Api.vkCmdBindDescriptorSets(commandBuffer, VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 1, _textureCollection.DescriptorSet);
 
         // bind sampler descriptor set
-        Api.vkCmdBindDescriptorSets(commandbuffer, VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 2, _samplerCollection.DescriptorSet);
+        Api.vkCmdBindDescriptorSets(commandBuffer, VkPipelineBindPoint.Graphics, _graphicsLayout.PipelineLayout, 2, _samplerCollection.DescriptorSet);
 
 
         var drawSession = new DrawSessionState
         {
             _extent = _swapchain.Extent,
-            _commandBuffer = commandbuffer,
-            _uniformBuffer = _uniformBuffers[frame.Index],
-            VertexInputManager = _vertexInputManagers[frame.Index]
+            _commandBuffer = commandBuffer,
+            _uniformBuffer = _uniformBuffers[frameIndex],
+            VertexInputManager = _vertexInputManagers[frameIndex]
         };
 
         draw(drawSession);
 
         // end rendering
-        Api.vkCmdEndRendering(commandbuffer);
+        _device.Api.vkCmdEndRendering(commandBuffer);
 
-        // transit image layout for presenting
-        VulkanUtilities.TransitionImageLayout(_device, commandbuffer, frame,
+
+        VulkanUtilities.TransitionImageLayout(_device, commandBuffer, _swapchain.Images[imageIndex],
             VkImageLayout.ColorAttachmentOptimal, VkImageLayout.PresentSrcKHR,
             VkAccessFlags2.ColorAttachmentWrite, VkAccessFlags2.None,
             VkPipelineStageFlags2.ColorAttachmentOutput, VkPipelineStageFlags2.BottomOfPipe
         );
 
         // end command buffer
-        Api.vkEndCommandBuffer(commandbuffer).CheckResult();
+        _device.Api.vkEndCommandBuffer(commandBuffer).CheckResult();
 
-        _swapchain.SubmitPresent(frame);
+        _device.FrameManager.Submit(commandBuffer, acquireSemaphore, out var releaseSemaphore);
+
+        _swapchain.Present(imageIndex, releaseSemaphore);
+
         return true;
     }
 }

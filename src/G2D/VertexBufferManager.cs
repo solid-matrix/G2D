@@ -14,10 +14,10 @@ internal class VertexBufferManager : IDisposable
 
     private static readonly uint[] UnitRectIndices = [0, 1, 2, 2, 1, 3];
 
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
 
-    public VertexBufferManager(Device device)
+    public VertexBufferManager(GraphicsDevice device)
     {
         _device = device;
     }

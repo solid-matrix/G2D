@@ -21,11 +21,11 @@ public readonly struct QueueType
         return 3;
     }
 
-    private static readonly QueueType[] _allTypes = [Graphics, Compute, Transfer];
+    private static readonly QueueType[] AllTypes = [Graphics, Compute, Transfer];
 
     public static ReadOnlySpan<QueueType> GetAllTypes()
     {
-        return _allTypes;
+        return AllTypes;
     }
 
     private static string GetName(QueueType type)

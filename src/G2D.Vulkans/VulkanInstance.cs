@@ -3,7 +3,7 @@ using Vortice.Vulkan;
 
 namespace G2D;
 
-public sealed unsafe class Instance : IDisposable
+public sealed unsafe class VulkanInstance : IDisposable
 {
     private const string DefaultApplicationName = "G2D Application";
 
@@ -20,7 +20,7 @@ public sealed unsafe class Instance : IDisposable
 
     private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
 
-    public Instance(string[] extensions, VkVersion apiVersion, string appName = DefaultApplicationName, Version? appVersion = null, string engineName = DefaultEngineName, Version? engineVersion = null, bool debugEnabled = false)
+    public VulkanInstance(string[] extensions, VkVersion apiVersion, string appName = DefaultApplicationName, Version? appVersion = null, string engineName = DefaultEngineName, Version? engineVersion = null, bool debugEnabled = false)
     {
         _debugEnabled = debugEnabled;
         _apiVersion = apiVersion;
@@ -94,9 +94,9 @@ public sealed unsafe class Instance : IDisposable
                 .CheckResult("vulkan failed to create debug utils messenger");
     }
 
-    public bool DebugEnabled => _debugEnabled;
-
     public VkInstanceApi Api => _api;
+
+    public bool DebugEnabled => _debugEnabled;
 
     public VkVersion ApiVersion => _apiVersion;
 
@@ -123,14 +123,14 @@ public sealed unsafe class Instance : IDisposable
         return physicalDevices;
     }
 
-    public VkSurfaceCapabilitiesKHR GetPhysicalDeviceSurfaceCapabilities(VkPhysicalDevice device, VkSurfaceKHR surface)
+    public VkSurfaceCapabilitiesKHR GetGpuSurfaceCapabilities(VkPhysicalDevice device, VkSurfaceKHR surface)
     {
         _api.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, out var capabilities)
             .CheckResult("failed to get physical device surface capabilities");
         return capabilities;
     }
 
-    public VkSurfaceFormatKHR[] GetPhysicalDeviceSurfaceFormats(VkPhysicalDevice device, VkSurfaceKHR surface)
+    public VkSurfaceFormatKHR[] GetGpuSurfaceFormats(VkPhysicalDevice device, VkSurfaceKHR surface)
     {
         _api.vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, out var count)
             .CheckResult("failed to  get physical device surface formats");
@@ -144,7 +144,7 @@ public sealed unsafe class Instance : IDisposable
         return formats;
     }
 
-    public VkPresentModeKHR[] GetPhysicalDeviceSurfacePresentModes(VkPhysicalDevice device, VkSurfaceKHR surface)
+    public VkPresentModeKHR[] GetGpuSurfacePresentModes(VkPhysicalDevice device, VkSurfaceKHR surface)
     {
         _api.vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, out var count)
             .CheckResult("failed to   get physical device surface present modes");
@@ -255,7 +255,7 @@ public sealed unsafe class Instance : IDisposable
         return Vulkan.VK_FALSE;
     }
 
-    public static implicit operator VkInstance(Instance instance)
+    public static implicit operator VkInstance(VulkanInstance instance)
     {
         return instance._instance;
     }

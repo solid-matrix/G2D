@@ -2,7 +2,7 @@
 
 namespace G2D;
 
-public unsafe partial class G2D
+public partial class G2D
 {
     private VulkanContext _vulkanContext = null!;
 
@@ -16,28 +16,18 @@ public unsafe partial class G2D
 
     private void RenderRunLoop()
     {
-        // wait window creating
-        _initBarrier.SignalAndWait();
-
         // create vulkan instance
         _vulkanContext = new VulkanContext(
             _config.ApplicationName, _config.ApplicationVersion,
             _config.EngineName, _config.EngineVersion,
-            _requiredVulkanInstanceExtensions,
+            _requiredVulkanInstanceExtensions.AwaitValue(),
             _config.EnableDebug
         );
-        _vkInstanceHandle = _vulkanContext.Instance;
-
-        _initBarrier.SignalAndWait();
-        // wait surface creating & window size
-        _vkSurfaceHandle = CreateVulkanSurface(_window, _vkInstanceHandle);
-
-        _initBarrier.SignalAndWait();
+        _vkInstanceHandle.SetValue(_vulkanContext.Instance);
 
         // initialize vulkan context
-        _vulkanContext.Initialize(_vkSurfaceHandle, () => new Size2I(_windowWidth, _windowHeight));
+        _vulkanContext.Initialize(_vkSurfaceHandle.AwaitValue(), () => new Size2I(_windowWidth, _windowHeight));
 
-        _initBarrier.SignalAndWait();
 
         _graphics = new Graphics(_vulkanContext);
         _assetsManager = new AssetsManager(_vulkanContext.TextureCollection);
@@ -62,6 +52,7 @@ public unsafe partial class G2D
                 _timer.SignalUpdated();
             }
 
+
             if (_timer.RequireRender && _vulkanContext.RenderFrame(_graphics.ClearColor, session =>
                 {
                     _graphics.BeginSession(session);
@@ -69,7 +60,7 @@ public unsafe partial class G2D
                     _graphics.Uniform.MousePosition = default; //TODO Mouse.GetPosition();
                     _graphics.Uniform.Time = _timer.Time;
 
-                    _game.Draw(_timer.RenderAlpha);
+                    _game.Draw(_graphics, _timer.RenderAlpha);
 
                     _graphics.EndSession();
                 }))

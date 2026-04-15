@@ -5,7 +5,7 @@ namespace G2D;
 
 internal unsafe class UniformBuffer : IDisposable
 {
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     private readonly VkDescriptorSet _descriptorSet;
 
@@ -15,7 +15,7 @@ internal unsafe class UniformBuffer : IDisposable
 
     private readonly void* _address;
 
-    public UniformBuffer(Device device, VkDescriptorSet descriptorSet)
+    public UniformBuffer(GraphicsDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
 
@@ -55,7 +55,7 @@ internal unsafe class UniformBuffer : IDisposable
     }
 
 
-    private static void UpdateDescriptorSet(Device device, VkDescriptorSet descriptorSet, VkBuffer buffer)
+    private static void UpdateDescriptorSet(GraphicsDevice device, VkDescriptorSet descriptorSet, VkBuffer buffer)
     {
         var uniformDescriptorBufferInfo = new VkDescriptorBufferInfo
         {

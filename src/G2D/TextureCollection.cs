@@ -7,7 +7,7 @@ internal unsafe class TextureCollection : IDisposable
 {
     // public const uint MaxImageCount = 65536;
 
-    private readonly Device _device;
+    private readonly GraphicsDevice _device;
 
     private readonly VkDescriptorSet _descriptorSet;
 
@@ -21,7 +21,7 @@ internal unsafe class TextureCollection : IDisposable
 
     internal readonly List<Size2> Extents = [];
 
-    public TextureCollection(Device device, VkDescriptorSet descriptorSet)
+    public TextureCollection(GraphicsDevice device, VkDescriptorSet descriptorSet)
     {
         _device = device;
         _descriptorSet = descriptorSet;
@@ -144,7 +144,7 @@ internal unsafe class TextureCollection : IDisposable
         Vma.vmaCreateImage(_device.Allocator, &imageInfo, &imageAllocationInfo, out var image, out var imageAllocation, out _);
 
         // Create Temporary Command Buffer
-        _device.Api.vkAllocateCommandBuffer(_device.GetCommandPool(QueueType.Graphics), out var commandBuffer);
+        _device.Api.vkAllocateCommandBuffer(_device.GraphicsCommandPool, out var commandBuffer);
 
         _device.Api.vkBeginCommandBuffer(commandBuffer, VkCommandBufferUsageFlags.OneTimeSubmit);
 
@@ -198,18 +198,18 @@ internal unsafe class TextureCollection : IDisposable
             pCommandBuffers = &commandBuffer
         };
 
-        _device.Api.vkQueueSubmit(_device.GetQueue(QueueType.Graphics), 1, &submitInfo, fence);
+        _device.Api.vkQueueSubmit(_device.GraphicsQueue, 1, &submitInfo, fence);
         _device.Api.vkWaitForFences(fence, true, ulong.MaxValue);
 
         // cleanup
         _device.Api.vkDestroyFence(fence);
-        _device.Api.vkFreeCommandBuffers(_device.GetCommandPool(QueueType.Graphics), commandBuffer);
+        _device.Api.vkFreeCommandBuffers(_device.GraphicsCommandPool, commandBuffer);
         Vma.vmaDestroyBuffer(_device.Allocator, stagingBuffer, stagingAllocation);
 
         return (image, imageAllocation, new Size2((int)width, (int)height));
     }
 
-    private static void UpdateDescriptorSet(Device device, VkDescriptorSet descriptorSet, uint index, VkImageView imageView)
+    private static void UpdateDescriptorSet(GraphicsDevice device, VkDescriptorSet descriptorSet, uint index, VkImageView imageView)
     {
         var info = new VkDescriptorImageInfo
         {

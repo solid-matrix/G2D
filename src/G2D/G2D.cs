@@ -9,17 +9,15 @@ public sealed partial class G2D
 
     private volatile IGame _game;
 
-    private volatile Barrier _initBarrier;
-
     private volatile Channel<Event> _eventChannel;
 
     private volatile CancellationTokenSource _cts;
 
-    private volatile string[] _requiredVulkanInstanceExtensions = null!;
+    private volatile AsyncValue<string[]> _requiredVulkanInstanceExtensions = new();
 
-    private volatile nint _vkInstanceHandle;
+    private volatile AsyncValue<nint> _vkInstanceHandle = new();
 
-    private volatile nint _vkSurfaceHandle;
+    private volatile AsyncValue<nint> _vkSurfaceHandle = new();
 
     private volatile int _windowWidth;
 
@@ -31,7 +29,6 @@ public sealed partial class G2D
     {
         _game = game;
         _config = config;
-        _initBarrier = new Barrier(2);
         _eventChannel = Channel.CreateUnbounded<Event>(new UnboundedChannelOptions { SingleReader = true, SingleWriter = true });
         _cts = new CancellationTokenSource();
     }
@@ -54,6 +51,5 @@ public sealed partial class G2D
     private void Cleanup()
     {
         _cts.Dispose();
-        _initBarrier.Dispose();
     }
 }

@@ -49,7 +49,7 @@ public partial class MyGame : IGame
         _r += dt * MathF.PI / 2 * _speed;
     }
 
-    public void Draw(float alpha)
+    public void Draw(Graphics graphics, float alpha)
     {
         _renderFps.Update();
 

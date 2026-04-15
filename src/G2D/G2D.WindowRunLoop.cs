@@ -26,24 +26,17 @@ public unsafe partial class G2D
         _window = SDL3.SDL_CreateWindow(_config.WindowTitle, _config.WindowWidth, _config.WindowHeight, flags);
         if (_window == null) throw new Exception("SDL: failed to create window; " + SDL3.SDL_GetError());
 
-        _keyboardManager = new KeyboardManager();
-        _mouseManager = new MouseManager();
-
-        // get required vulkan instance extensions
-        _requiredVulkanInstanceExtensions = GetVulkanInstanceExtensions();
-
-        _initBarrier.SignalAndWait();
-        // wait vulkan instance creating
-        _initBarrier.SignalAndWait();
-
-        // create vulkan surface
-        // _vkSurfaceHandle = CreateVulkanSurface(_window, _vkInstanceHandle);
         (_windowWidth, _windowHeight) = GetClientSize(_window);
+
         _displayRefreshRate = GetDisplayRefreshRate(_window);
 
-        _initBarrier.SignalAndWait();
-        // waiting vulkan context creating
-        _initBarrier.SignalAndWait();
+        _keyboardManager = new KeyboardManager();
+
+        _mouseManager = new MouseManager();
+
+        _requiredVulkanInstanceExtensions.SetValue(GetVulkanInstanceExtensions());
+
+        _vkSurfaceHandle.SetValue(CreateVulkanSurface(_window, _vkInstanceHandle.AwaitValue()));
 
         SDL3.SDL_ShowWindow(_window);
 
