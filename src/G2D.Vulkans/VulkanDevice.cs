@@ -18,7 +18,7 @@ public sealed unsafe class VulkanDevice : IDisposable
 
     private readonly VkQueue[] _queues = new VkQueue[QueueType.GetTypeCount()];
 
-    private readonly VkCommandPool[] _commandPools = new VkCommandPool[QueueType.GetTypeCount()];
+    private readonly VulkanCommandPool[] _commandPools = new VulkanCommandPool[QueueType.GetTypeCount()];
 
     public VulkanDevice(VulkanInstance instance, VkSurfaceKHR surface, VkUtf8String[] extensions)
         : this(instance, VulkanUtilities.SelectGpu(instance, instance.EnumerateGpus(), surface), surface, extensions)
@@ -133,14 +133,10 @@ public sealed unsafe class VulkanDevice : IDisposable
         Vma.vmaCreateAllocator(in vmaAllocatorInfo, out _vmaAllocator)
             .CheckResult("failed to create vma allocator");
 
-        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _queueFamilies[QueueType.Graphics], out _commandPools[QueueType.Graphics])
-            .CheckResult("vulkan failed to create command pool");
-
-        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _queueFamilies[QueueType.Compute], out _commandPools[QueueType.Compute])
-            .CheckResult("vulkan failed to create command pool");
-
-        _api.vkCreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, _queueFamilies[QueueType.Transfer], out _commandPools[QueueType.Transfer])
-            .CheckResult("vulkan failed to create command pool");
+        foreach (var type in QueueType.GetAllTypes())
+        {
+            _commandPools[type] = CreateCommandPool(VkCommandPoolCreateFlags.ResetCommandBuffer, type);
+        }
     }
 
 
@@ -158,8 +154,7 @@ public sealed unsafe class VulkanDevice : IDisposable
     {
         foreach (var i in QueueType.GetAllTypes())
         {
-            if (_commandPools[i] != VkCommandPool.Null)
-                _api.vkDestroyCommandPool(_commandPools[i]);
+            _commandPools[i].Dispose();
         }
 
         Vma.vmaDestroyAllocator(_vmaAllocator);
@@ -171,9 +166,29 @@ public sealed unsafe class VulkanDevice : IDisposable
         return _queues[type] == VkQueue.Null ? throw new Exception("failed to get queue") : _queues[type];
     }
 
-    public VkCommandPool GetCommandPool(QueueType type)
+    public VulkanCommandPool GetCommandPool(QueueType type)
     {
-        return _commandPools[type] == VkCommandPool.Null ? throw new Exception("failed to get command pool") : _commandPools[type];
+        return _commandPools[type];
+    }
+
+    public VulkanCommandPool CreateCommandPool(VkCommandPoolCreateFlags flags, QueueType queueType)
+    {
+        return new VulkanCommandPool(this, flags, _queueFamilies[queueType]);
+    }
+
+    public VulkanCommandBuffer CreateCommandBuffer(QueueType queueType, VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
+    {
+        return GetCommandPool(queueType).CreateCommandBuffer(level);
+    }
+
+    public VulkanFence CreateFence(VkFenceCreateFlags flags)
+    {
+        return new VulkanFence(this, flags);
+    }
+
+    public VulkanSemaphore CreateSemaphore()
+    {
+        return new VulkanSemaphore(this);
     }
 
     public void WaitIdle()

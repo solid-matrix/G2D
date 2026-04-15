@@ -160,4 +160,41 @@ public static unsafe class VulkanUtilities
 
         return rank;
     }
+
+    public static VkExtent2D ChooseExtent(VkSurfaceCapabilitiesKHR capabilities, VkExtent2D actualExtent)
+    {
+        if (capabilities.currentExtent.width > 0) return capabilities.currentExtent;
+
+        actualExtent = new VkExtent2D(
+            Math.Clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+            Math.Clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
+        );
+
+        return actualExtent;
+    }
+
+    public static VkSurfaceFormatKHR ChooseSurfaceFormat(ReadOnlySpan<VkSurfaceFormatKHR> availableFormats)
+    {
+        if (availableFormats.Length == 1 && availableFormats[0].format == VkFormat.Undefined)
+            return new VkSurfaceFormatKHR(VkFormat.B8G8R8A8Srgb, availableFormats[0].colorSpace);
+
+        foreach (var availableFormat in availableFormats)
+        {
+            if (availableFormat is { format: VkFormat.B8G8R8A8Srgb, colorSpace: VkColorSpaceKHR.SrgbNonLinear })
+                return availableFormat;
+        }
+
+        return availableFormats[0];
+    }
+
+    public static VkPresentModeKHR ChoosePresentMode(ReadOnlySpan<VkPresentModeKHR> availablePresentModes)
+    {
+        foreach (var availablePresentMode in availablePresentModes)
+        {
+            if (availablePresentMode == VkPresentModeKHR.Mailbox)
+                return availablePresentMode;
+        }
+
+        return VkPresentModeKHR.Fifo;
+    }
 }

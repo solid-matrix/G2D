@@ -17,4 +17,8 @@
         <Folder Include="Structs\"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\G2D.Mathematics\G2D.Mathematics.csproj"/>
+    </ItemGroup>
+
 </Project>
