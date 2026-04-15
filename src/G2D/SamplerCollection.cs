@@ -4,13 +4,13 @@ namespace G2D;
 
 internal unsafe class SamplerCollection : IDisposable
 {
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkSampler[] _samplers;
 
     private readonly VkDescriptorSet _descriptorSet;
 
-    public SamplerCollection(VulkanDevice device, VkDescriptorSet descriptorSet)
+    public SamplerCollection(Device device, VkDescriptorSet descriptorSet)
     {
         _device = device;
         _descriptorSet = descriptorSet;
@@ -26,10 +26,13 @@ internal unsafe class SamplerCollection : IDisposable
 
     public void Dispose()
     {
-        foreach (var sampler in _samplers) _device.Api.vkDestroySampler(sampler);
+        foreach (var sampler in _samplers)
+        {
+            _device.Api.vkDestroySampler(sampler);
+        }
     }
 
-    private static VkSampler[] CreateStaticSamplers(VulkanDevice device)
+    private static VkSampler[] CreateStaticSamplers(Device device)
     {
         var samplers = new VkSampler[8];
 
@@ -116,15 +119,17 @@ internal unsafe class SamplerCollection : IDisposable
         return samplers;
     }
 
-    private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, ReadOnlySpan<VkSampler> samplers)
+    private static void UpdateDescriptorSet(Device device, VkDescriptorSet descriptorSet, ReadOnlySpan<VkSampler> samplers)
     {
         var infos = new VkDescriptorImageInfo[(uint)samplers.Length];
 
         for (var i = 0; i < samplers.Length; i++)
+        {
             infos[i] = new VkDescriptorImageInfo
             {
                 sampler = samplers[i]
             };
+        }
 
         VkWriteDescriptorSet writes;
         fixed (VkDescriptorImageInfo* pImage = infos)

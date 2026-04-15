@@ -3,11 +3,11 @@ using Vortice.Vulkan;
 
 namespace G2D;
 
-public sealed unsafe class VulkanSwapchain : IDisposable
+public sealed unsafe class Swapchain : IDisposable
 {
     private const uint MaxFrameCountInFlight = 3;
 
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkSurfaceKHR _surface;
 
@@ -36,24 +36,24 @@ public sealed unsafe class VulkanSwapchain : IDisposable
 
     private uint _currentFrame;
 
-    private readonly VulkanCommandBuffer[] _commandBuffers;
+    private readonly CommandBuffer[] _commandBuffers;
 
-    private readonly VulkanFence[] _submitFences;
+    private readonly Fence[] _submitFences;
 
-    private readonly VulkanSemaphore[] _acquireSemaphores;
+    private readonly Semaphore[] _acquireSemaphores;
 
-    private readonly VulkanSemaphore[] _releaseSemaphores;
+    private readonly Semaphore[] _releaseSemaphores;
 
-    public VulkanSwapchain(VulkanDevice device, VkSurfaceKHR surface, Func<Size2I> surfaceSizeProvider)
+    public Swapchain(Device device, VkSurfaceKHR surface, Func<Size2I> surfaceSizeProvider)
     {
         _device = device;
         _surface = surface;
         _surfaceSizeProvider = surfaceSizeProvider;
 
-        _commandBuffers = new VulkanCommandBuffer[MaxFrameCountInFlight];
-        _submitFences = new VulkanFence[MaxFrameCountInFlight];
-        _acquireSemaphores = new VulkanSemaphore[MaxFrameCountInFlight];
-        _releaseSemaphores = new VulkanSemaphore[MaxFrameCountInFlight];
+        _commandBuffers = new CommandBuffer[MaxFrameCountInFlight];
+        _submitFences = new Fence[MaxFrameCountInFlight];
+        _acquireSemaphores = new Semaphore[MaxFrameCountInFlight];
+        _releaseSemaphores = new Semaphore[MaxFrameCountInFlight];
 
         for (var i = 0; i < MaxFrameCountInFlight; i++)
         {
@@ -66,27 +66,23 @@ public sealed unsafe class VulkanSwapchain : IDisposable
         _isValid = false;
 
         Create();
+
+        if (!_isValid) throw new Exception("Vulkan: failed to create swapchain");
     }
 
-    public VkSwapchainKHR Swapchain => _swapchain;
+    internal VkImage[] Images => _images;
 
-    public uint ImageCount => _imageCount;
+    internal VkImageView[] ImageViews => _imageViews;
+
+    internal CommandBuffer[] CommandBuffers => _commandBuffers;
 
     public VkFormat Format => _format;
 
     public VkExtent2D Extent => _extent;
 
-    public VkImage[] Images => _images;
-
-    public VkImageView[] ImageViews => _imageViews;
-
-    public VulkanCommandBuffer[] CommandBuffers => _commandBuffers;
-
-    public bool IsValid => _isValid;
-
     public Size2I SurfaceSize => _surfaceSizeProvider();
-    
-    public uint  FrameCountInFlight => _frameCountInFlight;
+
+    public uint FrameCountInFlight => _frameCountInFlight;
 
     public void Dispose()
     {
@@ -202,10 +198,10 @@ public sealed unsafe class VulkanSwapchain : IDisposable
         return _isValid;
     }
 
-    public VulkanSwapchainFrame? Acquire()
+    public SwapchainFrame? Acquire()
     {
         if (SurfaceSize.Area == 0) return null;
-        if (!IsValid)
+        if (!_isValid)
         {
             Recreate();
             return null;
@@ -232,17 +228,20 @@ public sealed unsafe class VulkanSwapchain : IDisposable
 
         _commandBuffers[_currentFrame].Reset();
 
-        return new VulkanSwapchainFrame(this, imageIndex, _currentFrame);
+        return new SwapchainFrame(this, imageIndex, _currentFrame);
     }
 
-    public void SubmitPresent(VulkanSwapchainFrame frame)
+    public void SubmitPresent(SwapchainFrame frame)
     {
-        VkCommandBuffer commandBuffer = _commandBuffers[frame.Index];
+        if (frame.Index != _currentFrame)
+            throw new Exception("Vulkan: frame index skipped");
+
+        VkCommandBuffer commandBuffer = _commandBuffers[_currentFrame];
         var swapchain = _swapchain;
         var waitStage = VkPipelineStageFlags.ColorAttachmentOutput;
-        VkSemaphore acquireSemaphore = _acquireSemaphores[frame.Index];
-        VkSemaphore releaseSemaphore = _releaseSemaphores[frame.Index];
-        VkFence submitFence = _submitFences[frame.Index];
+        VkSemaphore acquireSemaphore = _acquireSemaphores[_currentFrame];
+        VkSemaphore releaseSemaphore = _releaseSemaphores[_currentFrame];
+        VkFence submitFence = _submitFences[_currentFrame];
         var imageIndex = frame.ImageIndex;
 
         _device.Api.vkResetFences(submitFence);

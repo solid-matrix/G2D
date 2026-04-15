@@ -2,9 +2,9 @@
 
 namespace G2D;
 
-public sealed unsafe class VulkanDevice : IDisposable
+public sealed unsafe class Device : IDisposable
 {
-    private readonly VulkanInstance _instance;
+    private readonly Instance _instance;
 
     private readonly VkPhysicalDevice _gpu;
 
@@ -18,14 +18,14 @@ public sealed unsafe class VulkanDevice : IDisposable
 
     private readonly VkQueue[] _queues = new VkQueue[QueueType.GetTypeCount()];
 
-    private readonly VulkanCommandPool[] _commandPools = new VulkanCommandPool[QueueType.GetTypeCount()];
+    private readonly CommandPool[] _commandPools = new CommandPool[QueueType.GetTypeCount()];
 
-    public VulkanDevice(VulkanInstance instance, VkSurfaceKHR surface, VkUtf8String[] extensions)
+    public Device(Instance instance, VkSurfaceKHR surface, VkUtf8String[] extensions)
         : this(instance, VulkanUtilities.SelectGpu(instance, instance.EnumerateGpus(), surface), surface, extensions)
     {
     }
 
-    public VulkanDevice(VulkanInstance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface, VkUtf8String[] extensions)
+    public Device(Instance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface, VkUtf8String[] extensions)
     {
         _instance = instance;
         _gpu = gpu;
@@ -116,7 +116,7 @@ public sealed unsafe class VulkanDevice : IDisposable
         _instance.Api.vkCreateDevice(_gpu, &deviceCreateInfo, out _device)
             .CheckResult("failed to create vulkan device");
 
-        _api = Vulkan.GetApi(_instance.Instance, _device);
+        _api = Vulkan.GetApi(_instance, _device);
 
         _api.vkGetDeviceQueue(_queueFamilies[QueueType.Graphics], offsets[QueueType.Graphics], out _queues[QueueType.Graphics]);
         _api.vkGetDeviceQueue(_queueFamilies[QueueType.Compute], offsets[QueueType.Compute], out _queues[QueueType.Compute]);
@@ -125,7 +125,7 @@ public sealed unsafe class VulkanDevice : IDisposable
         var vmaAllocatorInfo = new VmaAllocatorCreateInfo
         {
             vulkanApiVersion = _instance.ApiVersion,
-            instance = _instance.Instance,
+            instance = _instance,
             physicalDevice = _gpu,
             device = _device
         };
@@ -140,11 +140,9 @@ public sealed unsafe class VulkanDevice : IDisposable
     }
 
 
-    public VulkanInstance Instance => _instance;
+    public Instance Instance => _instance;
 
     public VkPhysicalDevice Gpu => _gpu;
-
-    public VkDevice Device => _device;
 
     public VmaAllocator Allocator => _vmaAllocator;
 
@@ -166,29 +164,29 @@ public sealed unsafe class VulkanDevice : IDisposable
         return _queues[type] == VkQueue.Null ? throw new Exception("failed to get queue") : _queues[type];
     }
 
-    public VulkanCommandPool GetCommandPool(QueueType type)
+    public CommandPool GetCommandPool(QueueType type)
     {
         return _commandPools[type];
     }
 
-    public VulkanCommandPool CreateCommandPool(VkCommandPoolCreateFlags flags, QueueType queueType)
+    public CommandPool CreateCommandPool(VkCommandPoolCreateFlags flags, QueueType queueType)
     {
-        return new VulkanCommandPool(this, flags, _queueFamilies[queueType]);
+        return new CommandPool(this, flags, _queueFamilies[queueType]);
     }
 
-    public VulkanCommandBuffer CreateCommandBuffer(QueueType queueType, VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
+    public CommandBuffer CreateCommandBuffer(QueueType queueType, VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
     {
         return GetCommandPool(queueType).CreateCommandBuffer(level);
     }
 
-    public VulkanFence CreateFence(VkFenceCreateFlags flags)
+    public Fence CreateFence(VkFenceCreateFlags flags)
     {
-        return new VulkanFence(this, flags);
+        return new Fence(this, flags);
     }
 
-    public VulkanSemaphore CreateSemaphore()
+    public Semaphore CreateSemaphore()
     {
-        return new VulkanSemaphore(this);
+        return new Semaphore(this);
     }
 
     public void WaitIdle()
@@ -197,7 +195,7 @@ public sealed unsafe class VulkanDevice : IDisposable
             .CheckResult("failed vulkan device wait idle");
     }
 
-    public static implicit operator VkDevice(VulkanDevice device)
+    public static implicit operator VkDevice(Device device)
     {
         return device._device;
     }

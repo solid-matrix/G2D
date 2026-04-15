@@ -2,15 +2,15 @@
 
 namespace G2D;
 
-public sealed class VulkanCommandPool : IDisposable
+public sealed class CommandPool : IDisposable
 {
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkCommandPool _commandPool;
 
-    private readonly HashSet<VulkanCommandBuffer> _commandBuffers;
+    private readonly HashSet<CommandBuffer> _commandBuffers;
 
-    internal VulkanCommandPool(VulkanDevice device, VkCommandPoolCreateFlags flags, uint queueFamilyIndex)
+    internal CommandPool(Device device, VkCommandPoolCreateFlags flags, uint queueFamilyIndex)
     {
         _device = device;
         _device.Api.vkCreateCommandPool(flags, queueFamilyIndex, out _commandPool)
@@ -24,14 +24,14 @@ public sealed class VulkanCommandPool : IDisposable
         _device.Api.vkDestroyCommandPool(_commandPool);
     }
 
-    public VulkanCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
+    public CommandBuffer CreateCommandBuffer(VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
     {
-        var buffer = new VulkanCommandBuffer(_device, this, level);
+        var buffer = new CommandBuffer(_device, this, level);
         _commandBuffers.Add(buffer);
         return buffer;
     }
 
-    public static implicit operator VkCommandPool(VulkanCommandPool pool)
+    public static implicit operator VkCommandPool(CommandPool pool)
     {
         return pool._commandPool;
     }

@@ -2,13 +2,13 @@
 
 namespace G2D;
 
-public sealed class VulkanFence : IDisposable
+public sealed class Fence : IDisposable
 {
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkFence _fence;
 
-    internal VulkanFence(VulkanDevice device, VkFenceCreateFlags flags)
+    internal Fence(Device device, VkFenceCreateFlags flags)
     {
         _device = device;
         _device.Api.vkCreateFence(flags, out _fence);
@@ -25,7 +25,7 @@ public sealed class VulkanFence : IDisposable
         return res == VkResult.Success;
     }
 
-    public static implicit operator VkFence(VulkanFence fence)
+    public static implicit operator VkFence(Fence fence)
     {
         return fence._fence;
     }

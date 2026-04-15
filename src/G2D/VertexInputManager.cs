@@ -17,7 +17,7 @@ internal class VertexInputManager : IDisposable
 
     // private static readonly uint[] UnitRectIndices = [0, 1, 2, 2, 1, 3];
 
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     internal readonly BufferSpanPool VertexBufferPool;
 
@@ -25,7 +25,7 @@ internal class VertexInputManager : IDisposable
 
     internal BufferSpan UnitRectVerticesBuffer;
 
-    internal VertexInputManager(VulkanDevice device)
+    internal VertexInputManager(Device device)
     {
         _device = device;
 

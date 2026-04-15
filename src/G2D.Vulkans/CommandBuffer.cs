@@ -2,15 +2,15 @@
 
 namespace G2D;
 
-public sealed class VulkanCommandBuffer
+public sealed class CommandBuffer
 {
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
-    private readonly VulkanCommandPool _commandPool;
+    private readonly CommandPool _commandPool;
 
     private readonly VkCommandBuffer _commandBuffer;
 
-    internal VulkanCommandBuffer(VulkanDevice device, VulkanCommandPool pool, VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
+    internal CommandBuffer(Device device, CommandPool pool, VkCommandBufferLevel level = VkCommandBufferLevel.Primary)
     {
         _device = device;
         _commandPool = pool;
@@ -18,7 +18,7 @@ public sealed class VulkanCommandBuffer
             .CheckResult("Vulkan: failed to allocate command buffer");
     }
 
-    public VulkanCommandPool CommandPool => _commandPool;
+    public CommandPool CommandPool => _commandPool;
 
     public void Reset()
     {
@@ -31,7 +31,7 @@ public sealed class VulkanCommandBuffer
     //     _device.Api.vkFreeCommandBuffers(_commandPool, _commandBuffer);
     // }
 
-    public static implicit operator VkCommandBuffer(VulkanCommandBuffer buffer)
+    public static implicit operator VkCommandBuffer(CommandBuffer buffer)
     {
         return buffer._commandBuffer;
     }

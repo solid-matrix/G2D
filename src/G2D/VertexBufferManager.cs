@@ -14,10 +14,10 @@ internal class VertexBufferManager : IDisposable
 
     private static readonly uint[] UnitRectIndices = [0, 1, 2, 2, 1, 3];
 
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
 
-    public VertexBufferManager(VulkanDevice device)
+    public VertexBufferManager(Device device)
     {
         _device = device;
     }

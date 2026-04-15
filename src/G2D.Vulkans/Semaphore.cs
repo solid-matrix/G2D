@@ -2,13 +2,13 @@
 
 namespace G2D;
 
-public sealed class VulkanSemaphore : IDisposable
+public sealed class Semaphore : IDisposable
 {
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkSemaphore _semaphore;
 
-    internal VulkanSemaphore(VulkanDevice device)
+    internal Semaphore(Device device)
     {
         _device = device;
         _device.Api.vkCreateSemaphore(out _semaphore);
@@ -19,7 +19,7 @@ public sealed class VulkanSemaphore : IDisposable
         _device.Api.vkDestroySemaphore(_semaphore);
     }
 
-    public static implicit operator VkSemaphore(VulkanSemaphore semaphore)
+    public static implicit operator VkSemaphore(Semaphore semaphore)
     {
         return semaphore._semaphore;
     }

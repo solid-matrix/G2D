@@ -6,7 +6,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 {
     private const uint UnitBufferSize = 1048576;
 
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkBufferUsageFlags _bufferUsage;
 
@@ -24,7 +24,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     private ulong _sizeCount;
 
-    public BufferSpanPool(VulkanDevice device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
+    public BufferSpanPool(Device device, VkBufferUsageFlags bufferUsage, VmaMemoryUsage memoryUsage)
     {
         _device = device;
         _bufferUsage = bufferUsage;
@@ -40,7 +40,10 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
     public void Dispose()
     {
-        for (var i = 0; i < _buffer.Count; i++) RemoveBuffer(i);
+        for (var i = 0; i < _buffer.Count; i++)
+        {
+            RemoveBuffer(i);
+        }
     }
 
     public BufferSpan Allocate(ulong size)
@@ -49,6 +52,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
         ulong step;
 
         for (var i = 0; i < _buffer.Count; i++)
+        {
             if (_size[i] - _occupy[i] >= size)
             {
                 var span = new BufferSpan(this, i, _occupy[i], size);
@@ -58,6 +62,7 @@ internal sealed unsafe class BufferSpanPool : IDisposable
 
                 return span;
             }
+        }
 
         var bufferIndex = AddBuffer(size > UnitBufferSize ? size : UnitBufferSize);
 
@@ -80,7 +85,10 @@ internal sealed unsafe class BufferSpanPool : IDisposable
         }
 
         // if more than one buffer exist, then clear all and create a larger one
-        for (var i = 0; i < _buffer.Count; i++) RemoveBuffer(i);
+        for (var i = 0; i < _buffer.Count; i++)
+        {
+            RemoveBuffer(i);
+        }
 
         _buffer.Clear();
         _allocation.Clear();

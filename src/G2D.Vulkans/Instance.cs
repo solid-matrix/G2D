@@ -3,7 +3,7 @@ using Vortice.Vulkan;
 
 namespace G2D;
 
-public sealed unsafe class VulkanInstance : IDisposable
+public sealed unsafe class Instance : IDisposable
 {
     private const string DefaultApplicationName = "G2D Application";
 
@@ -20,7 +20,7 @@ public sealed unsafe class VulkanInstance : IDisposable
 
     private readonly VkDebugUtilsMessengerEXT _debugMessenger = VkDebugUtilsMessengerEXT.Null;
 
-    public VulkanInstance(string[] extensions, VkVersion apiVersion, string appName = DefaultApplicationName, Version? appVersion = null, string engineName = DefaultEngineName, Version? engineVersion = null, bool debugEnabled = false)
+    public Instance(string[] extensions, VkVersion apiVersion, string appName = DefaultApplicationName, Version? appVersion = null, string engineName = DefaultEngineName, Version? engineVersion = null, bool debugEnabled = false)
     {
         _debugEnabled = debugEnabled;
         _apiVersion = apiVersion;
@@ -93,8 +93,6 @@ public sealed unsafe class VulkanInstance : IDisposable
             _api.vkCreateDebugUtilsMessengerEXT(&debugUtilsCreateInfo, null, out _debugMessenger)
                 .CheckResult("vulkan failed to create debug utils messenger");
     }
-
-    public VkInstance Instance => _instance;
 
     public bool DebugEnabled => _debugEnabled;
 
@@ -257,7 +255,7 @@ public sealed unsafe class VulkanInstance : IDisposable
         return Vulkan.VK_FALSE;
     }
 
-    public static implicit operator VkInstance(VulkanInstance instance)
+    public static implicit operator VkInstance(Instance instance)
     {
         return instance._instance;
     }

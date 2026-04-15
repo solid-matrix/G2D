@@ -1,10 +1,11 @@
-﻿using Vortice.Vulkan;
+﻿using System.Text;
+using Vortice.Vulkan;
 
 namespace G2D;
 
 public static unsafe class VulkanUtilities
 {
-    public static VkDescriptorPool CreateDescriptorPool(VulkanDevice device, uint maxSets, uint uniformCount, uint imageCount, uint samplerCount)
+    public static VkDescriptorPool CreateDescriptorPool(Device device, uint maxSets, uint uniformCount, uint imageCount, uint samplerCount)
     {
         VkDescriptorPoolSize[] descriptorPoolSizes =
         [
@@ -29,7 +30,7 @@ public static unsafe class VulkanUtilities
     }
 
     // TODO
-    public static void TransitionImageLayout(VulkanDevice device, VkCommandBuffer commandBuffer, VkImage image,
+    public static void TransitionImageLayout(Device device, VkCommandBuffer commandBuffer, VkImage image,
         VkImageLayout oldLayout, VkImageLayout newLayout,
         VkAccessFlags2 srcAccessMask, VkAccessFlags2 dstAccessMask,
         VkPipelineStageFlags2 srcStage, VkPipelineStageFlags2 dstStage)
@@ -61,7 +62,7 @@ public static unsafe class VulkanUtilities
         device.Api.vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
     }
 
-    public static uint[] QueryQueueFamilies(VulkanInstance instance, VkPhysicalDevice device, VkSurfaceKHR surface)
+    public static uint[] QueryQueueFamilies(Instance instance, VkPhysicalDevice device, VkSurfaceKHR surface)
     {
         var queueFamilies = new uint [QueueType.GetTypeCount()];
         Array.Fill(queueFamilies, Vulkan.VK_QUEUE_FAMILY_IGNORED);
@@ -102,7 +103,7 @@ public static unsafe class VulkanUtilities
         return queueFamilies;
     }
 
-    public static VkPhysicalDevice SelectGpu(VulkanInstance instance, VkPhysicalDevice[] gpus, VkSurfaceKHR surface)
+    public static VkPhysicalDevice SelectGpu(Instance instance, VkPhysicalDevice[] gpus, VkSurfaceKHR surface)
     {
         var max = 0;
         var selected = VkPhysicalDevice.Null;
@@ -120,7 +121,7 @@ public static unsafe class VulkanUtilities
         return selected;
     }
 
-    public static int RankGpu(VulkanInstance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface)
+    public static int RankGpu(Instance instance, VkPhysicalDevice gpu, VkSurfaceKHR surface)
     {
         var queueFamilies = QueryQueueFamilies(instance, gpu, surface);
 
@@ -196,5 +197,20 @@ public static unsafe class VulkanUtilities
         }
 
         return VkPresentModeKHR.Fifo;
+    }
+
+    public static VkVersion ToVkVersion(this Version? version)
+    {
+        return version == null ? new VkVersion(0) : new VkVersion((uint)version.Major, (uint)version.Minor, (uint)version.Build, (uint)version.Revision);
+    }
+
+    public static VkUtf8String ToVkUtf8String(this string value)
+    {
+        return Encoding.UTF8.GetBytes(value);
+    }
+
+    public static VkUtf8String[] ToVkUtf8StringArray(this string[] values)
+    {
+        return values.Select(s => s.ToVkUtf8String()).ToArray();
     }
 }

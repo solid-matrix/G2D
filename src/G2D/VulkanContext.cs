@@ -9,17 +9,14 @@ internal sealed unsafe class VulkanContext
 
     private static readonly VkVersion VulkanVersion = VkVersion.Version_1_3;
 
-    private readonly VulkanInstance _instance;
+    private readonly Instance _instance;
 
     private VkSurfaceKHR _surface;
 
-    private VulkanDevice _device = null!;
+    private Device _device = null!;
 
-    private VulkanSwapchain _swapchain = null!;
+    private Swapchain _swapchain = null!;
 
-    // private uint _frameCountInFlight;
-    //
-    // private uint _currentFrame;
 
     private VkDescriptorPool _descriptorPool;
 
@@ -33,24 +30,12 @@ internal sealed unsafe class VulkanContext
     private SamplerCollection _samplerCollection = null!;
 
 
-    // private VkCommandBuffer[] _commandBuffers = null!;
-
-    // private BufferSpanPool[] _vertexBufferPools = null!;
-    //
-    // private BufferSpanPool[] _instanceBufferPools = null!;
-
     private VertexInputManager[] _vertexInputManagers = null!;
 
 
-    // private VkFence[] _submitFences = null!;
-    //
-    // private VkSemaphore[] _acquireSemaphores = null!;
-    //
-    // private VkSemaphore[] _releaseSemaphores = null!;
-
     public VulkanContext(string appName, Version appVersion, string engineName, Version engineVersion, string[] requiredExtensions, bool debugEnabled = false)
     {
-        _instance = new VulkanInstance(
+        _instance = new Instance(
             requiredExtensions,
             VulkanVersion,
             appName, appVersion,
@@ -73,22 +58,9 @@ internal sealed unsafe class VulkanContext
     {
         _surface = new VkSurfaceKHR((ulong)surfaceHandle);
 
-        // Select Physical Device 
-        var physicalDevices = _instance.EnumerateGpus();
-        var physicalDevice = VulkanUtilities.SelectGpu(_instance, physicalDevices, _surface);
-        if (physicalDevice == VkPhysicalDevice.Null) throw new Exception("failed to find a suitable physical device!");
+        _device = new Device(_instance, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
 
-        VulkanUtilities.QueryQueueFamilies(_instance, physicalDevice, _surface);
-
-        // Create Device
-        _device = new VulkanDevice(_instance, physicalDevice, _surface, [Vulkan.VK_KHR_SWAPCHAIN_EXTENSION_NAME]);
-
-        // Create Swapchain
-        _swapchain = new VulkanSwapchain(_device, _surface, windowSizeProvidor);
-        if (!_swapchain.IsValid)
-            throw new Exception("failed to create swapchain");
-
-        // _frameCountInFlight = Math.Min(_swapchain.ImageCount, MaxFrameCountInFlight);
+        _swapchain = new Swapchain(_device, _surface, windowSizeProvidor);
 
         // Graphics Layout
         _graphicsLayout = new GraphicsLayout(_device, _swapchain.Format);
@@ -109,7 +81,6 @@ internal sealed unsafe class VulkanContext
             _uniformBuffers[i] = new UniformBuffer(_device, uniformDescriptorSets[i]);
         }
 
-
         // Create Texture Collection
         var textureDescriptorSet = _graphicsLayout.AllocateTextureDescriptorSet(_descriptorPool);
         _textureCollection = new TextureCollection(_device, textureDescriptorSet);
@@ -125,28 +96,6 @@ internal sealed unsafe class VulkanContext
         {
             _vertexInputManagers[i] = new VertexInputManager(_device);
         }
-
-        // // Create CommandBuffers 
-        // _commandBuffers = new VkCommandBuffer[_swapchain.FrameCountInFlight];
-        // for (var i = 0; i < _swapchain.FrameCountInFlight; i++)
-        // {
-        //     Api.vkAllocateCommandBuffer(_device.GetCommandPool(QueueType.Graphics), out _commandBuffers[i])
-        //         .CheckResult("failed to allocate command buffer");
-        // }
-
-        // // Create SyncObjects
-        // _submitFences = new VkFence[_frameCountInFlight];
-        // _acquireSemaphores = new VkSemaphore[_frameCountInFlight];
-        // _releaseSemaphores = new VkSemaphore[_frameCountInFlight];
-        // for (var i = 0; i < _frameCountInFlight; i++)
-        // {
-        //     Api.vkCreateFence(VkFenceCreateFlags.Signaled, out _submitFences[i])
-        //         .CheckResult("failed to create fence");
-        //     Api.vkCreateSemaphore(out _acquireSemaphores[i])
-        //         .CheckResult("failed to create semaphore");
-        //     Api.vkCreateSemaphore(out _releaseSemaphores[i])
-        //         .CheckResult("failed to create semaphore");
-        // }
     }
 
 
@@ -168,15 +117,7 @@ internal sealed unsafe class VulkanContext
 
         _graphicsLayout.Dispose();
 
-        // for (var i = 0; i < _frameCountInFlight; i++)
-        // {
-        //     Api.vkDestroyFence(_submitFences[i]);
-        //     Api.vkDestroySemaphore(_acquireSemaphores[i]);
-        //     Api.vkDestroySemaphore(_releaseSemaphores[i]);
-        // }
-
         _swapchain.Dispose();
-
 
         _device.Dispose();
 
@@ -188,9 +129,7 @@ internal sealed unsafe class VulkanContext
     internal bool RenderFrame(Color clearColor, Action<DrawSessionState> draw)
     {
         var frame = _swapchain.Acquire();
-
         if (frame == null) return false;
-
         var commandbuffer = frame.CommandBuffer;
 
         // ------------------------------------------------------------------------------------------------
@@ -274,8 +213,6 @@ internal sealed unsafe class VulkanContext
         // end command buffer
         Api.vkEndCommandBuffer(commandbuffer).CheckResult();
 
-
-        // -------------------------------------------------------------------
         _swapchain.SubmitPresent(frame);
         return true;
     }

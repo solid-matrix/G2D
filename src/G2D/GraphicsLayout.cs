@@ -173,7 +173,7 @@ internal unsafe class GraphicsLayout : IDisposable
         depthBiasSlopeFactor = 0
     };
 
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkFormat _format;
 
@@ -187,7 +187,7 @@ internal unsafe class GraphicsLayout : IDisposable
 
     private readonly List<VkPipeline> _pipelines;
 
-    public GraphicsLayout(VulkanDevice device, VkFormat swapchainFormat)
+    public GraphicsLayout(Device device, VkFormat swapchainFormat)
     {
         _device = device;
         _format = swapchainFormat;
@@ -217,7 +217,11 @@ internal unsafe class GraphicsLayout : IDisposable
 
     public void Dispose()
     {
-        foreach (var pipeline in _pipelines) _device.Api.vkDestroyPipeline(pipeline);
+        foreach (var pipeline in _pipelines)
+        {
+            _device.Api.vkDestroyPipeline(pipeline);
+        }
+
         _device.Api.vkDestroyPipelineLayout(_pipelineLayout);
         _device.Api.vkDestroyDescriptorSetLayout(_uniformDescriptorSetLayout);
         _device.Api.vkDestroyDescriptorSetLayout(_textureDescriptorSetLayout);
@@ -426,7 +430,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return descriptorSet;
     }
 
-    public static VkShaderModule CreateShaderModule(VulkanDevice device, byte[] code)
+    public static VkShaderModule CreateShaderModule(Device device, byte[] code)
     {
         fixed (byte* pCode = code)
         {
@@ -437,7 +441,7 @@ internal unsafe class GraphicsLayout : IDisposable
         }
     }
 
-    private static VkPipelineLayout CreatePipelineLayout(VulkanDevice device, VkDescriptorSetLayout[] descriptorSetLayouts)
+    private static VkPipelineLayout CreatePipelineLayout(Device device, VkDescriptorSetLayout[] descriptorSetLayouts)
     {
         VkPushConstantRange[] pushConstantRanges =
         [
@@ -464,7 +468,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return pipelineLayout;
     }
 
-    private static VkDescriptorSetLayout CreateUniformDescriptorSetLayout(VulkanDevice device)
+    private static VkDescriptorSetLayout CreateUniformDescriptorSetLayout(Device device)
     {
         var uniformDescriptorSetLayoutBinding = new VkDescriptorSetLayoutBinding
         {
@@ -485,7 +489,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return ddescriptorSetLayout;
     }
 
-    private static VkDescriptorSetLayout CreateSamplerDescriptorSetLayout(VulkanDevice device)
+    private static VkDescriptorSetLayout CreateSamplerDescriptorSetLayout(Device device)
     {
         var binding = new VkDescriptorSetLayoutBinding
         {
@@ -505,7 +509,7 @@ internal unsafe class GraphicsLayout : IDisposable
         return samplerDescriptorSetLayout;
     }
 
-    private static VkDescriptorSetLayout CreateTextureDescriptorSetLayout(VulkanDevice device)
+    private static VkDescriptorSetLayout CreateTextureDescriptorSetLayout(Device device)
     {
         var binding = new VkDescriptorSetLayoutBinding
         {

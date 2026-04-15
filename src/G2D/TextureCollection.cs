@@ -7,7 +7,7 @@ internal unsafe class TextureCollection : IDisposable
 {
     // public const uint MaxImageCount = 65536;
 
-    private readonly VulkanDevice _device;
+    private readonly Device _device;
 
     private readonly VkDescriptorSet _descriptorSet;
 
@@ -21,7 +21,7 @@ internal unsafe class TextureCollection : IDisposable
 
     internal readonly List<Size2> Extents = [];
 
-    public TextureCollection(VulkanDevice device, VkDescriptorSet descriptorSet)
+    public TextureCollection(Device device, VkDescriptorSet descriptorSet)
     {
         _device = device;
         _descriptorSet = descriptorSet;
@@ -209,7 +209,7 @@ internal unsafe class TextureCollection : IDisposable
         return (image, imageAllocation, new Size2((int)width, (int)height));
     }
 
-    private static void UpdateDescriptorSet(VulkanDevice device, VkDescriptorSet descriptorSet, uint index, VkImageView imageView)
+    private static void UpdateDescriptorSet(Device device, VkDescriptorSet descriptorSet, uint index, VkImageView imageView)
     {
         var info = new VkDescriptorImageInfo
         {
